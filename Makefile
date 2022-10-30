@@ -27,6 +27,10 @@ audit:
 	go test -race -vet=off ./...
 	go mod verify
 
+## audit: run quality control checks
+.PHONY: upgrade
+upgrade:
+	go get -u ./...
 
 # ==================================================================================== #
 # BUILD
