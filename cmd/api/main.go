@@ -5,11 +5,8 @@ import (
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/log"
 	"github.com/seanflannery10/ossa/server"
-	"github.com/seanflannery10/ossa/version"
 	"sync"
 )
-
-var ver = version.Get()
 
 type application struct {
 	config config
@@ -18,12 +15,14 @@ type application struct {
 
 func main() {
 
-	cfg := parseFlags()
+	cfg := parseConfig()
 
 	db, err := database.New(cfg.db)
 	if err != nil {
 		log.Fatal(err, nil)
 	}
+
+	publishVars(db)
 
 	app := &application{
 		config: cfg,
