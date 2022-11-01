@@ -22,7 +22,6 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(errors.MethodNotAllowed)
 
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
-
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", handlers.Healthcheck)
 
 	return m.Chain(m.Metrics, m.RecoverPanic, m.CORS, m.RateLimit, m.Authenticate).Then(router)

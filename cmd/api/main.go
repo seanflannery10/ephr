@@ -14,7 +14,6 @@ type application struct {
 }
 
 func main() {
-
 	cfg := parseConfig()
 
 	db, err := database.New(cfg.db)
@@ -28,7 +27,8 @@ func main() {
 		config: cfg,
 	}
 
-	srv := server.New(fmt.Sprintf(":%d", app.config.port), app.routes())
+	address := fmt.Sprintf(":%d", app.config.port)
+	srv := server.New(address, app.routes())
 
 	err = srv.Run()
 	if err != nil {
