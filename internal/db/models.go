@@ -5,11 +5,15 @@
 package db
 
 import (
-	"database/sql"
+	"time"
 )
 
 type Movie struct {
-	ID   int64          `db:"id" json:"id"`
-	Name string         `db:"name" json:"name"`
-	Bio  sql.NullString `db:"bio" json:"bio"`
+	ID        int64     `db:"id" json:"id"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	Title     string    `db:"title" json:"title"`
+	Year      int32     `db:"year" json:"year"`
+	Runtime   int32     `db:"runtime" json:"runtime"`
+	Genres    []string  `db:"genres" json:"genres"`
+	Version   int32     `db:"version" json:"version"`
 }

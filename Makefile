@@ -1,3 +1,5 @@
+include .env
+
 # ==================================================================================== #
 # HELPERS
 # ==================================================================================== #
@@ -21,7 +23,7 @@ tidy:
 
 ## audit: run quality control checks
 .PHONY: audit
-audit:
+audit: tidy
 	go vet ./...
 	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
 	go test -race -vet=off ./...
@@ -47,3 +49,23 @@ build:
 .PHONY: run
 run: tidy build
 	./bin/api
+
+# ==================================================================================== #
+# DB
+# ==================================================================================== #
+
+## up: start docker compose and apply db migrations
+.PHONY: up
+up:
+	docker compose up -d; sleep 1
+	dbmate up
+
+## down: build the cmd/api application
+.PHONY: down
+down:
+	docker compose down
+
+## psql: connect to the database using psql
+.PHONY: psql
+psql:
+	psql ${DATABASE_URL}
