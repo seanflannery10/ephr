@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/log"
 	"github.com/seanflannery10/ossa/server"
@@ -9,8 +10,9 @@ import (
 )
 
 type application struct {
-	config config
-	wg     sync.WaitGroup
+	config  config
+	queries *data.Queries
+	wg      sync.WaitGroup
 }
 
 func main() {
@@ -23,8 +25,11 @@ func main() {
 
 	publishVars(db)
 
+	queries := data.New(db)
+
 	app := &application{
-		config: cfg,
+		config:  cfg,
+		queries: queries,
 	}
 
 	address := fmt.Sprintf(":%d", app.config.port)

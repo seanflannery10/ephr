@@ -5,11 +5,11 @@ go 1.19
 require (
 	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgx/v4 v4.17.2
-	github.com/seanflannery10/ossa v0.0.0-20221102003851-73c797ffb7cf
+	github.com/seanflannery10/ossa v0.0.0-20221106221933-1dca153cd61d
 )
 
 require (
-	github.com/MicahParks/keyfunc v1.5.2 // indirect
+	github.com/MicahParks/keyfunc v1.5.3 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -23,7 +23,7 @@ require (
 	github.com/justinas/alice v1.2.0 // indirect
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326 // indirect
+	golang.org/x/exp v0.0.0-20221106115401-f9659909a136 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.1.0 // indirect
 )
