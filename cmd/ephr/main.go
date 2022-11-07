@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/database"
-	"github.com/seanflannery10/ossa/log"
 	"github.com/seanflannery10/ossa/server"
+	"log"
 	"sync"
 )
 

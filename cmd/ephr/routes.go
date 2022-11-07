@@ -2,8 +2,8 @@ package main
 
 import (
 	"expvar"
-	"github.com/seanflannery10/ossa/errors"
 	"github.com/seanflannery10/ossa/handlers"
+	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/httprouter"
 	"github.com/seanflannery10/ossa/middleware"
 	"net/http"
@@ -18,8 +18,8 @@ func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
 
-	router.NotFound = http.HandlerFunc(errors.NotFound)
-	router.MethodNotAllowed = http.HandlerFunc(errors.MethodNotAllowed)
+	router.NotFound = http.HandlerFunc(httperrors.NotFound)
+	router.MethodNotAllowed = http.HandlerFunc(httperrors.MethodNotAllowed)
 
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", handlers.Healthcheck)

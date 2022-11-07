@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/seanflannery10/ephr/internal/data"
-	"github.com/seanflannery10/ossa/errors"
-	"github.com/seanflannery10/ossa/json"
+	"github.com/seanflannery10/ossa/httperrors"
+	"github.com/seanflannery10/ossa/jsonutil"
 	"github.com/seanflannery10/ossa/validator"
 	"net/http"
 )
@@ -20,9 +20,9 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Genres  []string `json:"genres"`
 	}
 
-	err := json.Decode(w, r, &input)
+	err := jsonutil.Read(w, r, &input)
 	if err != nil {
-		errors.BadRequest(w, r, err)
+		httperrors.BadRequest(w, r, err)
 		return
 	}
 
@@ -36,29 +36,29 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	v := &validator.Validator{}
 
 	if app.validateMovie(v, movie); v.HasErrors() {
-		errors.FailedValidation(w, r, v)
+		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
 	createdMovie, err := app.queries.CreateMovie(ctx, movie)
 	if err != nil {
-		errors.ServerError(w, r, err)
+		httperrors.ServerError(w, r, err)
 		return
 	}
 
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/movies/%d", createdMovie.ID))
 
-	err = json.EncodeWithHeaders(w, http.StatusCreated, map[string]any{"movie": createdMovie}, headers)
+	err = jsonutil.WriteWithHeaders(w, http.StatusCreated, map[string]any{"movie": createdMovie}, headers)
 	if err != nil {
-		errors.ServerError(w, r, err)
+		httperrors.ServerError(w, r, err)
 	}
 }
 
 //func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 //	id, err := read.IDParam(r)
 //	if err != nil {
-//		errors.NotFound(w, r)
+//		httperrors.NotFound(w, r)
 //		return
 //	}
 //
@@ -66,15 +66,15 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 //	if err != nil {
 //		switch {
 //		case errors.Is(err, data.ErrRecordNotFound):
-//			errors.NotFound(w, r)
+//			httperrors.NotFound(w, r)
 //		default:
-//			errors.ServerError(w, r, err)
+//			httperrors.ServerError(w, r, err)
 //		}
 //		return
 //	}
 //
 //	err = json.Encode(w, http.StatusOK, map[string]any{"movie": movie})
 //	if err != nil {
-//		errors.ServerError(w, r, err)
+//		httperrors.ServerError(w, r, err)
 //	}
 //}

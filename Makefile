@@ -20,6 +20,7 @@ help:
 tidy:
 	go fmt ./...
 	go mod tidy -v
+	sqlc generate
 
 ## audit: run quality control checks
 .PHONY: audit
@@ -29,7 +30,7 @@ audit: tidy
 	go test -race -vet=off ./...
 	go mod verify
 
-## audit: run quality control checks
+## audit: upgrade modfile versions
 .PHONY: upgrade
 upgrade:
 	go get -u ./...
@@ -38,17 +39,11 @@ upgrade:
 # BUILD
 # ==================================================================================== #
 
-## build: build the cmd/api application
+## build: build the application
 .PHONY: build
-build:
+build: tidy
 	go mod verify
-	go build -ldflags='-s' -o=./bin/api ./cmd/api
-	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o=./bin/linux_amd64/api ./cmd/api
-
-## run: run the cmd/api application
-.PHONY: run
-run: tidy build
-	./bin/api
+	ko build ./cmd/ephr
 
 # ==================================================================================== #
 # DB
