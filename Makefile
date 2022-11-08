@@ -18,9 +18,9 @@ help:
 ## tidy: format code and tidy modfile
 .PHONY: tidy
 tidy:
+	sqlc generate
 	go fmt ./...
 	go mod tidy -v
-	sqlc generate
 
 ## audit: run quality control checks
 .PHONY: audit
