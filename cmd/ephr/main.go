@@ -1,11 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/server"
+	"github.com/seanflannery10/ossa/version"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -16,6 +19,14 @@ type application struct {
 }
 
 func main() {
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version.Get())
+		os.Exit(0)
+	}
+
 	cfg := parseConfig()
 
 	db, err := database.New(cfg.db)
@@ -37,6 +48,6 @@ func main() {
 
 	err = srv.Run()
 	if err != nil {
-		log.Fatal(err, nil)
+		log.Fatal(err)
 	}
 }

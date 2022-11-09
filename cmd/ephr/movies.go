@@ -137,16 +137,17 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err = app.queries.UpdateMovie(ctx, movie)
-	if err != nil {
-		switch {
-		case errors.Is(err, errEditConflict):
-			httperrors.EditConflict(w, r)
-		default:
-			httperrors.ServerError(w, r, err)
-		}
-		return
-	}
+	//TODO Fix movie lookup
+	//_, err = app.queries.UpdateMovie(ctx, movie)
+	//if err != nil {
+	//	switch {
+	//	case errors.Is(err, errEditConflict):
+	//		httperrors.EditConflict(w, r)
+	//	default:
+	//		httperrors.ServerError(w, r, err)
+	//	}
+	//	return
+	//}
 
 	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movie": movie})
 	if err != nil {

@@ -53,7 +53,7 @@ build: tidy
 .PHONY: up
 up:
 	docker compose up -d; sleep 1
-	dbmate up
+	dbmate --url ${DATABASE_URL} up
 
 ## down: build the cmd/api application
 .PHONY: down

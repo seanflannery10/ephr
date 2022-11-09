@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgx/v4 v4.17.2
-	github.com/seanflannery10/ossa v0.0.0-20221107014343-cf8e5e3436a1
+	github.com/seanflannery10/ossa v0.0.0-20221108222538-2456b034c21b
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/justinas/alice v1.2.0 // indirect
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/exp v0.0.0-20221106115401-f9659909a136 // indirect
+	golang.org/x/exp v0.0.0-20221108223516-5d533826c662 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	golang.org/x/time v0.1.0 // indirect
+	golang.org/x/time v0.2.0 // indirect
 )
