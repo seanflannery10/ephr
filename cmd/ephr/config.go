@@ -38,10 +38,9 @@ func parseConfig() config {
 			TrustedOrigins: strings.Fields(getEnvStrValue("CORS_TRUSTED_ORIGINS", "")),
 		},
 		limit: middleware.RateLimitConfig{
-			//TODO Add env bool lookup for enabled
-			//Enabled: ,
-			RPS:   getEnvFloat64Value("AUTH_API_URL", 2),
-			Burst: int(getEnvInt32Value("AUTH_API_URL", 2)),
+			Enabled: getEnvBoolValue("RATE_LIMIT_ENABLED", true),
+			RPS:     getEnvFloat64Value("RATE_LIMIT_RPS", 2),
+			Burst:   int(getEnvInt32Value("RATE_LIMIT_BURST", 2)),
 		},
 	}
 }
@@ -49,6 +48,18 @@ func parseConfig() config {
 func getEnvStrValue(key string, defaultValue string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvBoolValue(key string, defaultValue bool) bool {
+	if value, ok := os.LookupEnv(key); ok && value != "" {
+		switch value {
+		case "true", "True", "1":
+			return true
+		default:
+			return false
+		}
 	}
 	return defaultValue
 }
