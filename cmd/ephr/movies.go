@@ -129,6 +129,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	v := &validator.Validator{}
 
+	//TODO Fix partial fields
 	if app.validateUpdateMovie(v, movieParams); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
