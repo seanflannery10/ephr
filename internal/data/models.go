@@ -9,11 +9,11 @@ import (
 )
 
 type Movie struct {
-	ID        int64     `db:"id" json:"id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	Title     string    `db:"title" json:"title"`
-	Year      int32     `db:"year" json:"year"`
-	Runtime   int32     `db:"runtime" json:"runtime"`
-	Genres    []string  `db:"genres" json:"genres"`
-	Version   int32     `db:"version" json:"version"`
+	ID        int64
+	CreatedAt time.Time
+	Title     string
+	Year      int32
+	Runtime   int32
+	Genres    []string
+	Version   int32
 }

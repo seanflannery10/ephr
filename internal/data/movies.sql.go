@@ -17,16 +17,16 @@ RETURNING id, created_at, version
 `
 
 type CreateMovieParams struct {
-	Title   string   `db:"title" json:"title"`
-	Year    int32    `db:"year" json:"year"`
-	Runtime int32    `db:"runtime" json:"runtime"`
-	Genres  []string `db:"genres" json:"genres"`
+	Title   string
+	Year    int32
+	Runtime int32
+	Genres  []string
 }
 
 type CreateMovieRow struct {
-	ID        int64     `db:"id" json:"id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	Version   int32     `db:"version" json:"version"`
+	ID        int64
+	CreatedAt time.Time
+	Version   int32
 }
 
 func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (CreateMovieRow, error) {
@@ -68,21 +68,21 @@ LIMIT $3 OFFSET $4
 `
 
 type GetAllMoviesParams struct {
-	PlaintoTsquery string   `db:"plainto_tsquery" json:"plainto_tsquery"`
-	Genres         []string `db:"genres" json:"genres"`
-	Limit          int32    `db:"limit" json:"limit"`
-	Offset         int32    `db:"offset" json:"offset"`
+	PlaintoTsquery string
+	Genres         []string
+	Limit          int32
+	Offset         int32
 }
 
 type GetAllMoviesRow struct {
-	Count     int64     `db:"count" json:"count"`
-	ID        int64     `db:"id" json:"id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	Title     string    `db:"title" json:"title"`
-	Year      int32     `db:"year" json:"year"`
-	Runtime   int32     `db:"runtime" json:"runtime"`
-	Genres    []string  `db:"genres" json:"genres"`
-	Version   int32     `db:"version" json:"version"`
+	Count     int64
+	ID        int64
+	CreatedAt time.Time
+	Title     string
+	Year      int32
+	Runtime   int32
+	Genres    []string
+	Version   int32
 }
 
 func (q *Queries) GetAllMovies(ctx context.Context, arg GetAllMoviesParams) ([]GetAllMoviesRow, error) {
@@ -142,33 +142,38 @@ func (q *Queries) GetMovie(ctx context.Context, id int64) (Movie, error) {
 
 const updateMovie = `-- name: UpdateMovie :one
 UPDATE movies
-SET title   = $1,
-    year    = $2,
-    runtime = $3,
-    genres  = $4,
+SET title   = CASE WHEN $1::boolean THEN $2::TEXT ELSE title END,
+    year    = CASE WHEN $3::boolean THEN $4::INTEGER ELSE year END,
+    runtime = CASE WHEN $5::boolean THEN $6::INTEGER ELSE runtime END,
+    genres  = CASE WHEN $7::boolean THEN $8::TEXT[] ELSE genres END,
     version = version + 1
-WHERE id = $5
-  AND version = $6
+WHERE id = $9
 RETURNING version
 `
 
 type UpdateMovieParams struct {
-	Title   string   `db:"title" json:"title"`
-	Year    int32    `db:"year" json:"year"`
-	Runtime int32    `db:"runtime" json:"runtime"`
-	Genres  []string `db:"genres" json:"genres"`
-	ID      int64    `db:"id" json:"id"`
-	Version int32    `db:"version" json:"version"`
+	UpdateTitle   bool
+	Title         string
+	UpdateYear    bool
+	Year          int32
+	UpdateRuntime bool
+	Runtime       int32
+	UpdateGenres  bool
+	Genres        []string
+	ID            int64
 }
 
 func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (int32, error) {
 	row := q.db.QueryRow(ctx, updateMovie,
+		arg.UpdateTitle,
 		arg.Title,
+		arg.UpdateYear,
 		arg.Year,
+		arg.UpdateRuntime,
 		arg.Runtime,
+		arg.UpdateGenres,
 		arg.Genres,
 		arg.ID,
-		arg.Version,
 	)
 	var version int32
 	err := row.Scan(&version)

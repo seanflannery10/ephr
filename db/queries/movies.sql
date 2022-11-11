@@ -29,11 +29,10 @@ LIMIT $3 OFFSET $4;
 
 -- name: UpdateMovie :one
 UPDATE movies
-SET title   = $1,
-    year    = $2,
-    runtime = $3,
-    genres  = $4,
+SET title   = CASE WHEN @update_title::boolean THEN @title::TEXT ELSE title END,
+    year    = CASE WHEN @update_year::boolean THEN @year::INTEGER ELSE year END,
+    runtime = CASE WHEN @update_runtime::boolean THEN @runtime::INTEGER ELSE runtime END,
+    genres  = CASE WHEN @update_genres::boolean THEN @genres::TEXT[] ELSE genres END,
     version = version + 1
-WHERE id = $5
-  AND version = $6
+WHERE id = @id
 RETURNING version;
