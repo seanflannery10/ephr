@@ -45,18 +45,36 @@ func (app *application) validateUpdateMovie(v *validator.Validator, updateMovieP
 	}
 }
 
-//func (app *application) validateFilters(v *validator.Validator, f Filters) {
-//	v.Check(f.Page > 0, "page", "must be greater than zero")
-//	v.Check(f.Page <= 10_000_000, "page", "must be a maximum of 10 million")
-//	v.Check(f.PageSize > 0, "page_size", "must be greater than zero")
-//	v.Check(f.PageSize <= 100, "page_size", "must be a maximum of 100")
-//
-//	v.Check(validator.PermittedValue(f.Sort, f.SortSafelist...), "sort", "invalid sort value")
-//}
+type Filters struct {
+	Page     int
+	PageSize int
+}
+
+func (f Filters) limit() int32 {
+	return int32(f.PageSize)
+}
+
+func (f Filters) offset() int32 {
+	return int32((f.Page - 1) * f.PageSize)
+}
+
+type Metadata struct {
+	CurrentPage  int   `json:"current_page,omitempty"`
+	PageSize     int   `json:"page_size,omitempty"`
+	FirstPage    int   `json:"first_page,omitempty"`
+	LastPage     int   `json:"last_page,omitempty"`
+	TotalRecords int64 `json:"total_records,omitempty"`
+}
+
+func (app *application) validateFilters(v *validator.Validator, f Filters) {
+	v.Check(f.Page > 0, "page must be greater than zero")
+	v.Check(f.Page <= 10_000_000, "page must be a maximum of 10 million")
+	v.Check(f.PageSize > 0, "page size must be greater than zero")
+	v.Check(f.PageSize <= 100, "page size must be a maximum of 100")
+}
 
 func (app *application) calculateMetadata(totalRecords int64, page, pageSize int) Metadata {
 	if totalRecords == 0 {
-
 		return Metadata{}
 	}
 

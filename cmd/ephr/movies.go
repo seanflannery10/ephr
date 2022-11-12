@@ -177,54 +177,36 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-type Filters struct {
-	Page         int
-	PageSize     int
-	Sort         string
-	SortSafelist []string
-}
-
-type Metadata struct {
-	CurrentPage  int   `json:"current_page,omitempty"`
-	PageSize     int   `json:"page_size,omitempty"`
-	FirstPage    int   `json:"first_page,omitempty"`
-	LastPage     int   `json:"last_page,omitempty"`
-	TotalRecords int64 `json:"total_records,omitempty"`
-}
-
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
-
-	var input struct {
-		Title  string
-		Genres []string
-		Filters
-	}
-
 	v := &validator.Validator{}
 
-	input.Title = read.String(r, "title", "")
-	input.Genres = read.CSV(r, "genres", []string{})
+	title := read.String(r, "title", "")
+	genres := read.CSV(r, "genres", []string{})
 
-	input.Filters.Page = read.Int(r, "page", 1, v)
-	input.Filters.PageSize = read.Int(r, "page_size", 20, v)
+	filters := Filters{}
 
-	input.Filters.Sort = read.String(r, "sort", "id")
-	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+	filters.Page = read.Int(r, "page", 1, v)
+	filters.PageSize = read.Int(r, "page_size", 20, v)
 
-	//if app.validateFilters(v, input.Filters); v.HasErrors() {
-	//	httperrors.FailedValidation(w, r, v)
-	//	return
-	//}
+	if app.validateFilters(v, filters); v.HasErrors() {
+		httperrors.FailedValidation(w, r, v)
+		return
+	}
 
-	params := data.GetAllMoviesParams{}
+	params := data.GetAllMoviesParams{
+		PlaintoTsquery: title,
+		Genres:         genres,
+		Limit:          filters.limit(),
+		Offset:         filters.offset(),
+	}
 
 	movies, err := app.queries.GetAllMovies(ctx, params)
-
-	metadata := app.calculateMetadata(movies[0].Count, input.Filters.Page, input.Filters.PageSize)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
+
+	metadata := app.calculateMetadata(movies[0].Count, filters.Page, filters.PageSize)
 
 	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
 	if err != nil {
