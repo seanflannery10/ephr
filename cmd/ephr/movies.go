@@ -32,7 +32,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	movieParams := data.CreateMovieParams{
+	params := data.CreateMovieParams{
 		Title:   *input.Title,
 		Year:    *input.Year,
 		Runtime: *input.Runtime,
@@ -41,12 +41,12 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	v := &validator.Validator{}
 
-	if app.validateCreateMovie(v, movieParams); v.HasErrors() {
+	if app.validateCreateMovie(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
-	movie, err := app.queries.CreateMovie(ctx, movieParams)
+	movie, err := app.queries.CreateMovie(ctx, params)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -105,37 +105,36 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	movieParams := data.UpdateMovieParams{ID: id}
+	params := data.UpdateMovieParams{ID: id}
 
 	if input.Title != nil {
-		movieParams.UpdateTitle = true
-		movieParams.Title = *input.Title
+		params.UpdateTitle = true
+		params.Title = *input.Title
 	}
 
 	if input.Year != nil {
-		movieParams.UpdateYear = true
-		movieParams.Year = *input.Year
+		params.UpdateYear = true
+		params.Year = *input.Year
 	}
 
 	if input.Runtime != nil {
-		movieParams.UpdateRuntime = true
-		movieParams.Runtime = *input.Runtime
+		params.UpdateRuntime = true
+		params.Runtime = *input.Runtime
 	}
 
 	if input.Genres != nil {
-		movieParams.UpdateGenres = true
-		movieParams.Genres = *input.Genres
+		params.UpdateGenres = true
+		params.Genres = *input.Genres
 	}
 
 	v := &validator.Validator{}
 
-	//TODO Fix partial fields
-	if app.validateUpdateMovie(v, movieParams); v.HasErrors() {
+	if app.validateUpdateMovie(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
-	movie, err := app.queries.UpdateMovie(ctx, movieParams)
+	movie, err := app.queries.UpdateMovie(ctx, params)
 	if err != nil {
 		switch {
 		case errors.Is(err, errRecordNotFound):
@@ -149,6 +148,85 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movie": movie})
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+	}
+}
+
+func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := read.IDParam(r)
+	if err != nil {
+		httperrors.NotFound(w, r)
+		return
+	}
+
+	err = app.queries.DeleteMovie(ctx, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, errRecordNotFound):
+			httperrors.NotFound(w, r)
+		default:
+			httperrors.ServerError(w, r, err)
+		}
+		return
+	}
+
+	err = jsonutil.Write(w, http.StatusOK, map[string]any{"message": "movie successfully deleted"})
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+	}
+}
+
+type Filters struct {
+	Page         int
+	PageSize     int
+	Sort         string
+	SortSafelist []string
+}
+
+type Metadata struct {
+	CurrentPage  int   `json:"current_page,omitempty"`
+	PageSize     int   `json:"page_size,omitempty"`
+	FirstPage    int   `json:"first_page,omitempty"`
+	LastPage     int   `json:"last_page,omitempty"`
+	TotalRecords int64 `json:"total_records,omitempty"`
+}
+
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+
+	var input struct {
+		Title  string
+		Genres []string
+		Filters
+	}
+
+	v := &validator.Validator{}
+
+	input.Title = read.String(r, "title", "")
+	input.Genres = read.CSV(r, "genres", []string{})
+
+	input.Filters.Page = read.Int(r, "page", 1, v)
+	input.Filters.PageSize = read.Int(r, "page_size", 20, v)
+
+	input.Filters.Sort = read.String(r, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	//if app.validateFilters(v, input.Filters); v.HasErrors() {
+	//	httperrors.FailedValidation(w, r, v)
+	//	return
+	//}
+
+	params := data.GetAllMoviesParams{}
+
+	movies, err := app.queries.GetAllMovies(ctx, params)
+
+	metadata := app.calculateMetadata(movies[0].Count, input.Filters.Page, input.Filters.PageSize)
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+		return
+	}
+
+	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}
