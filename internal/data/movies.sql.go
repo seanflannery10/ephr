@@ -64,16 +64,30 @@ SELECT count(*) OVER (),
 FROM movies
 WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
   AND (genres @> $2 OR $2 = '{}')
-
-ORDER BY id
-OFFSET $3 LIMIT $4
+ORDER BY CASE WHEN $3::bool THEN id END ASC,
+         CASE WHEN $4::bool THEN id END DESC,
+         CASE WHEN $5::bool THEN title END ASC,
+         CASE WHEN $6::bool THEN title END DESC,
+         CASE WHEN $7::bool THEN year END ASC,
+         CASE WHEN $8::bool THEN year END DESC,
+         CASE WHEN $9::bool THEN runtime END ASC,
+         CASE WHEN $10::bool THEN runtime END DESC
+OFFSET $11 LIMIT $12
 `
 
 type GetAllMoviesParams struct {
-	Title  string
-	Genres []string
-	Offset int32
-	Limit  int32
+	Title       string
+	Genres      []string
+	IDAsc       bool
+	IDDesc      bool
+	TitleAsc    bool
+	TitleDesc   bool
+	YearAsc     bool
+	YearDesc    bool
+	RuntimeAsc  bool
+	RuntimeDesc bool
+	Offset      int32
+	Limit       int32
 }
 
 type GetAllMoviesRow struct {
@@ -87,11 +101,18 @@ type GetAllMoviesRow struct {
 	Version   int32
 }
 
-// TODO order by any filed and pick direction
 func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]*GetAllMoviesRow, error) {
 	rows, err := q.db.Query(ctx, getAllMovies,
 		arg.Title,
 		arg.Genres,
+		arg.IDAsc,
+		arg.IDDesc,
+		arg.TitleAsc,
+		arg.TitleDesc,
+		arg.YearAsc,
+		arg.YearDesc,
+		arg.RuntimeAsc,
+		arg.RuntimeDesc,
 		arg.Offset,
 		arg.Limit,
 	)

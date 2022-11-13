@@ -25,8 +25,14 @@ SELECT count(*) OVER (),
 FROM movies
 WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', @title) OR @title = '')
   AND (genres @> @genres OR @genres = '{}')
--- TODO order by any filed and pick direction
-ORDER BY id
+ORDER BY CASE WHEN @id_asc::bool THEN id END,
+         CASE WHEN @id_desc::bool THEN id END DESC,
+         CASE WHEN @title_asc::bool THEN title END,
+         CASE WHEN @title_desc::bool THEN title END DESC,
+         CASE WHEN @year_asc::bool THEN year END,
+         CASE WHEN @year_desc::bool THEN year END DESC,
+         CASE WHEN @runtime_asc::bool THEN runtime END,
+         CASE WHEN @runtime_desc::bool THEN runtime END DESC
 OFFSET @offset_ LIMIT @limit_;
 
 -- name: UpdateMovie :one
