@@ -64,13 +64,13 @@ SELECT count(*) OVER (),
 FROM movies
 WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
   AND (genres @> $2 OR $2 = '{}')
-ORDER BY CASE WHEN $3::bool THEN id END ASC,
+ORDER BY CASE WHEN $3::bool THEN id END,
          CASE WHEN $4::bool THEN id END DESC,
-         CASE WHEN $5::bool THEN title END ASC,
+         CASE WHEN $5::bool THEN title END,
          CASE WHEN $6::bool THEN title END DESC,
-         CASE WHEN $7::bool THEN year END ASC,
+         CASE WHEN $7::bool THEN year END,
          CASE WHEN $8::bool THEN year END DESC,
-         CASE WHEN $9::bool THEN runtime END ASC,
+         CASE WHEN $9::bool THEN runtime END,
          CASE WHEN $10::bool THEN runtime END DESC
 OFFSET $11 LIMIT $12
 `
