@@ -8,3 +8,5 @@ sql:
         package: "data"
         out: "internal/data/"
         sql_package: "pgx/v4"
+        emit_result_struct_pointers: true
+        emit_params_struct_pointers: true

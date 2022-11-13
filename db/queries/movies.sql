@@ -23,9 +23,11 @@ SELECT count(*) OVER (),
        genres,
        version
 FROM movies
-WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
-  AND (genres @> $2 OR $2 = '{}')
-LIMIT $3 OFFSET $4;
+WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', @title) OR @title = '')
+  AND (genres @> @genres OR @genres = '{}')
+-- TODO order by any filed and pick direction
+ORDER BY id
+OFFSET @offset_ LIMIT @limit_;
 
 -- name: UpdateMovie :one
 UPDATE movies

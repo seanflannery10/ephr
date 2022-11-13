@@ -32,7 +32,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := data.CreateMovieParams{
+	params := &data.CreateMovieParams{
 		Title:   *input.Title,
 		Year:    *input.Year,
 		Runtime: *input.Runtime,
@@ -105,7 +105,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := data.UpdateMovieParams{ID: id}
+	params := &data.UpdateMovieParams{ID: id}
 
 	if input.Title != nil {
 		params.UpdateTitle = true
@@ -193,11 +193,11 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	params := data.GetAllMoviesParams{
-		PlaintoTsquery: title,
-		Genres:         genres,
-		Limit:          filters.limit(),
-		Offset:         filters.offset(),
+	params := &data.GetAllMoviesParams{
+		Title:  title,
+		Genres: genres,
+		Offset: filters.offset(),
+		Limit:  filters.limit(),
 	}
 
 	movies, err := app.queries.GetAllMovies(ctx, params)

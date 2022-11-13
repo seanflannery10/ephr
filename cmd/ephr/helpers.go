@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (app *application) validateCreateMovie(v *validator.Validator, createMovieParams data.CreateMovieParams) {
+func (app *application) validateCreateMovie(v *validator.Validator, createMovieParams *data.CreateMovieParams) {
 	v.CheckField(createMovieParams.Title != "", "title", "must be provided")
 	v.CheckField(len(createMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
 
@@ -24,7 +24,7 @@ func (app *application) validateCreateMovie(v *validator.Validator, createMovieP
 	v.CheckField(validator.NoDuplicates(createMovieParams.Genres), "genres", "must not contain duplicate values")
 }
 
-func (app *application) validateUpdateMovie(v *validator.Validator, updateMovieParams data.UpdateMovieParams) {
+func (app *application) validateUpdateMovie(v *validator.Validator, updateMovieParams *data.UpdateMovieParams) {
 	if updateMovieParams.Title != "" {
 		v.CheckField(len(updateMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
 	}

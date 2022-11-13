@@ -29,7 +29,7 @@ type CreateMovieRow struct {
 	Version   int32
 }
 
-func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (CreateMovieRow, error) {
+func (q *Queries) CreateMovie(ctx context.Context, arg *CreateMovieParams) (*CreateMovieRow, error) {
 	row := q.db.QueryRow(ctx, createMovie,
 		arg.Title,
 		arg.Year,
@@ -38,7 +38,7 @@ func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (Creat
 	)
 	var i CreateMovieRow
 	err := row.Scan(&i.ID, &i.CreatedAt, &i.Version)
-	return i, err
+	return &i, err
 }
 
 const deleteMovie = `-- name: DeleteMovie :exec
@@ -64,14 +64,16 @@ SELECT count(*) OVER (),
 FROM movies
 WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
   AND (genres @> $2 OR $2 = '{}')
-LIMIT $3 OFFSET $4
+
+ORDER BY id
+OFFSET $3 LIMIT $4
 `
 
 type GetAllMoviesParams struct {
-	PlaintoTsquery string
-	Genres         []string
-	Limit          int32
-	Offset         int32
+	Title  string
+	Genres []string
+	Offset int32
+	Limit  int32
 }
 
 type GetAllMoviesRow struct {
@@ -85,18 +87,19 @@ type GetAllMoviesRow struct {
 	Version   int32
 }
 
-func (q *Queries) GetAllMovies(ctx context.Context, arg GetAllMoviesParams) ([]GetAllMoviesRow, error) {
+// TODO order by any filed and pick direction
+func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]*GetAllMoviesRow, error) {
 	rows, err := q.db.Query(ctx, getAllMovies,
-		arg.PlaintoTsquery,
+		arg.Title,
 		arg.Genres,
-		arg.Limit,
 		arg.Offset,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAllMoviesRow
+	var items []*GetAllMoviesRow
 	for rows.Next() {
 		var i GetAllMoviesRow
 		if err := rows.Scan(
@@ -111,7 +114,7 @@ func (q *Queries) GetAllMovies(ctx context.Context, arg GetAllMoviesParams) ([]G
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -125,7 +128,7 @@ FROM movies
 WHERE id = $1
 `
 
-func (q *Queries) GetMovie(ctx context.Context, id int64) (Movie, error) {
+func (q *Queries) GetMovie(ctx context.Context, id int64) (*Movie, error) {
 	row := q.db.QueryRow(ctx, getMovie, id)
 	var i Movie
 	err := row.Scan(
@@ -137,7 +140,7 @@ func (q *Queries) GetMovie(ctx context.Context, id int64) (Movie, error) {
 		&i.Genres,
 		&i.Version,
 	)
-	return i, err
+	return &i, err
 }
 
 const updateMovie = `-- name: UpdateMovie :one
@@ -163,7 +166,7 @@ type UpdateMovieParams struct {
 	ID            int64
 }
 
-func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (int32, error) {
+func (q *Queries) UpdateMovie(ctx context.Context, arg *UpdateMovieParams) (int32, error) {
 	row := q.db.QueryRow(ctx, updateMovie,
 		arg.UpdateTitle,
 		arg.Title,
