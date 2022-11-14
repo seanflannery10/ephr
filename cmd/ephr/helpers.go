@@ -46,8 +46,10 @@ func (app *application) validateUpdateMovie(v *validator.Validator, updateMovieP
 }
 
 type Filters struct {
-	Page     int
-	PageSize int
+	Page         int
+	PageSize     int
+	Sort         string
+	SortSafelist []string
 }
 
 func (f Filters) limit() int32 {
@@ -71,6 +73,8 @@ func (app *application) validateFilters(v *validator.Validator, f Filters) {
 	v.Check(f.Page <= 10_000_000, "page must be a maximum of 10 million")
 	v.Check(f.PageSize > 0, "page size must be greater than zero")
 	v.Check(f.PageSize <= 100, "page size must be a maximum of 100")
+
+	v.Check(validator.In(f.Sort, f.SortSafelist...), "invalid sort value")
 }
 
 func (app *application) calculateMetadata(totalRecords int64, page, pageSize int) Metadata {

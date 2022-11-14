@@ -188,6 +188,9 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	filters.Page = read.Int(r, "page", 1, v)
 	filters.PageSize = read.Int(r, "page_size", 20, v)
 
+	filters.Sort = read.String(r, "sort", "id")
+	filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
 	if app.validateFilters(v, filters); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
@@ -198,6 +201,27 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		Genres: genres,
 		Offset: filters.offset(),
 		Limit:  filters.limit(),
+	}
+
+	switch filters.Sort {
+	case "id":
+		params.IDAsc = true
+	case "-id":
+		params.IDDesc = true
+	case "title":
+		params.TitleAsc = true
+	case "-title":
+		params.TitleDesc = true
+	case "year":
+		params.YearAsc = true
+	case "-year":
+		params.YearDesc = true
+	case "runtime":
+		params.RuntimeAsc = true
+	case "-runtime":
+		params.RuntimeDesc = true
+	default:
+		params.IDAsc = true
 	}
 
 	movies, err := app.queries.GetAllMovies(ctx, params)
