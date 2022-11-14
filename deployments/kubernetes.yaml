@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ephr
+  labels:
+    app: ephr
+spec:
+  selector:
+    matchLabels:
+      app: ephr
+  template:
+    metadata:
+      labels:
+        app: ephr
+    spec:
+      containers:
+        - name: ephr
+          image: ephr-image
+          ports:
+            - containerPort: 4000
