@@ -46,21 +46,29 @@ build: tidy
 	ko build ./cmd/ephr
 
 # ==================================================================================== #
+# DEV
+# ==================================================================================== #
+
+## up: start the application stack
+.PHONY: up
+up:
+	tilt up
+
+## down: stop the application stack
+.PHONY: down
+down:
+	tilt down
+
+# ==================================================================================== #
 # DB
 # ==================================================================================== #
 
-## up: start docker compose and apply db migrations
-.PHONY: up
-up:
-	docker compose up -d; sleep 1
-	dbmate --url ${DATABASE_URL} up
-
-## down: build the cmd/api application
-.PHONY: down
-down:
-	docker compose down
+## migrations: apply db migrations
+.PHONY: migrations
+migrations:
+	dbmate --url ${DB_URL} up
 
 ## psql: connect to the database using psql
 .PHONY: psql
 psql:
-	psql ${DATABASE_URL}
+	psql ${DB_URL}

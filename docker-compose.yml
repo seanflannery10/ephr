@@ -1,10 +1,20 @@
 version: '3'
 services:
+  ephr:
+    container_name: ephr
+    image: ephr-image
+    environment:
+      DB_URL: "host=postgres user=${USER} password=${PASS}"
+    depends_on:
+      - postgres
+    ports:
+      - "4000:4000"
   postgres:
     container_name: postgres
     image: postgres:15
     environment:
       POSTGRES_USER: ${USER}
-      POSTGRES_PASSWORD: ${PASSWORD}
+      POSTGRES_PASSWORD: ${PASS}
+      POSTGRES_DB: ${DB}
     ports:
       - "5432:5432"
