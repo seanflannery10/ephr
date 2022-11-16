@@ -4,16 +4,27 @@ services:
     container_name: ephr
     image: ephr-image
     environment:
-      DB_URL: "host=postgres user=${USER} password=${PASS}"
+      DB_URL: "host=postgres user=${USERNAME} password=${PASS} database=${DB}"
     depends_on:
       - postgres
     ports:
       - "4000:4000"
+  logto:
+    depends_on:
+      - postgres
+    image: ghcr.io/logto-io/logto:${TAG-latest}
+    entrypoint: [ "sh", "-c", "npm run cli db seed -- --swe && npm start" ]
+    ports:
+      - "3001:3001"
+    environment:
+      TRUST_PROXY_HEADER: true
+      DB_URL: "host=postgres user=${USERNAME} password=${PASS} db=logto"
+      ENDPOINT: # Mandatory. Mapping env to the container.
   postgres:
     container_name: postgres
     image: postgres:15
     environment:
-      POSTGRES_USER: ${USER}
+      POSTGRES_USER: ${USERNAME}
       POSTGRES_PASSWORD: ${PASS}
       POSTGRES_DB: ${DB}
     ports:
