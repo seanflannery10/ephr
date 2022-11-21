@@ -25,13 +25,13 @@ spec:
         app: ephr
     spec:
       containers:
-      - name: ephr
-        image: ephr-image
-        env:
-        - name: DB_URL
-          value: 'postgres://postgres:test@postgres:5432/ephr?sslmode=disable'
-        ports:
-        - containerPort: 4000'''
+        - name: ephr
+          image: ephr-image
+          env:
+            - name: DB_URL
+              value: 'postgres://postgres:test@postgres:5432/ephr?sslmode=disable'
+          ports:
+            - containerPort: 4000'''
 
 k8s_yaml(blob(ephr_blob))
 k8s_resource('ephr', port_forwards=4000, resource_deps=['postgres'])
@@ -53,16 +53,16 @@ spec:
         run: logto
     spec:
       containers:
-      - name: logto
-        image: ghcr.io/logto-io/logto:1.0.0-beta.14
-        command: [ "sh", "-c", "sleep 3 && npm run cli db seed -- --swe && npm start" ]
-        env:
-        - name: TRUST_PROXY_HEADER
-          value: "true"
-        - name: DB_URL
-          value: postgres://postgres:test@postgres:5432/logto?sslmode=disable
-        ports:
-        - containerPort: 3001'''
+        - name: logto
+          image: ghcr.io/logto-io/logto:1.0.0-beta.14
+          command: [ "sh", "-c", "sleep 3 && npm run cli db seed -- --swe && npm start" ]
+          env:
+            - name: TRUST_PROXY_HEADER
+              value: "true"
+            - name: DB_URL
+              value: postgres://postgres:test@postgres:5432/logto?sslmode=disable
+          ports:
+            - containerPort: 3001'''
 
 logto_service = '''
 apiVersion: v1
@@ -99,24 +99,28 @@ spec:
         run: postgres
     spec:
       containers:
-      - name: postgres
-        image: postgres:15
-        env:
-        - name: POSTGRES_PASSWORD
-          value: test
-        - name: POSTGRES_DB
-          value: ephr
-        - name: PGUSER
-          value: postgres
-        ports:
-        - containerPort: 5432
-        startupProbe:
-          exec:
-            command:
-            - /bin/sh
+        - name: postgres
+          image: postgres:15
+          args:
+            - postgres
             - -c
-            - exec pg_isready -h localhost
-          periodSeconds: 5'''
+            - log_statement=all
+          env:
+            - name: PGUSER
+              value: postgres
+            - name: POSTGRES_DB
+              value: ephr
+            - name: POSTGRES_PASSWORD
+              value: test
+          ports:
+            - containerPort: 5432
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -h localhost
+            periodSeconds: 5'''
 
 postgres_service = '''
 apiVersion: v1
@@ -127,8 +131,8 @@ metadata:
     run: postgres
 spec:
   ports:
-  - port: 5432
-    protocol: TCP
+    - port: 5432
+      protocol: TCP
   selector:
     run: postgres'''
 
