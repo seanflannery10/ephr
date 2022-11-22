@@ -30,7 +30,7 @@ audit: tidy
 	go test -race -vet=off ./...
 	go mod verify
 
-## audit: upgrade modfile versions
+## upgrade: upgrade modfile versions
 .PHONY: upgrade
 upgrade:
 	go get -u ./...

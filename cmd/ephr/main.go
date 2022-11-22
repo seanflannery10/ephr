@@ -29,14 +29,14 @@ func main() {
 
 	cfg := parseConfig()
 
-	db, err := database.New(cfg.db)
+	dbpool, err := database.New(cfg.db)
 	if err != nil {
 		log.Fatal(err, nil)
 	}
 
-	publishVars(db)
+	publishVars(dbpool)
 
-	queries := data.New(db)
+	queries := data.New(dbpool)
 
 	app := &application{
 		config:  cfg,

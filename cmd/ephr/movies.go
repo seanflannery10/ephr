@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/jsonutil"
@@ -13,9 +14,8 @@ import (
 )
 
 var (
-	ctx               = context.Background()
-	errRecordNotFound = errors.New("record not found")
-	errEditConflict   = errors.New("edit conflict")
+	ctx             = context.Background()
+	errEditConflict = errors.New("edit conflict")
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +71,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	movie, err := app.queries.GetMovie(ctx, id)
 	if err != nil {
 		switch {
-		case errors.Is(err, errRecordNotFound):
+		case errors.Is(err, pgx.ErrNoRows):
 			httperrors.NotFound(w, r)
 		default:
 			httperrors.ServerError(w, r, err)
@@ -137,7 +137,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	movie, err := app.queries.UpdateMovie(ctx, params)
 	if err != nil {
 		switch {
-		case errors.Is(err, errRecordNotFound):
+		case errors.Is(err, pgx.ErrNoRows):
 			httperrors.NotFound(w, r)
 		case errors.Is(err, errEditConflict):
 			httperrors.EditConflict(w, r)
@@ -163,7 +163,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	err = app.queries.DeleteMovie(ctx, id)
 	if err != nil {
 		switch {
-		case errors.Is(err, errRecordNotFound):
+		case errors.Is(err, pgx.ErrNoRows):
 			httperrors.NotFound(w, r)
 		default:
 			httperrors.ServerError(w, r, err)
