@@ -1,14 +1,28 @@
+POSTGRES_USER = 'postgres'
+POSTGRES_PASSWORD = 'test'
+POSTGRES_DB = 'ephr'
+
 load('ext://ko', 'ko_build')
 load('ext://tests/golang', 'test_go')
 
 ko_build('ephr-image',
     './cmd/ephr',
-    deps=['./cmd/ephr', './internal'])
+    deps=['./cmd/ephr', './internal']
+)
 
 test_go('test-ephr-cmd', './cmd/...', './cmd')
 test_go('test-ephr-internal', './internal/...', './internal')
 
-ephr_blob = '''
+ephr = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ephr
+  labels:
+    run: ephr
+data:
+  DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable'
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,16 +41,27 @@ spec:
       containers:
         - name: ephr
           image: ephr-image
-          env:
-            - name: DB_URL
-              value: 'postgres://postgres:test@postgres:5432/ephr?sslmode=disable'
+          envFrom:
+            - configMapRef:
+                name: ephr
           ports:
-            - containerPort: 4000'''
+            - containerPort: 4000
+'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
 
-k8s_yaml(blob(ephr_blob))
+k8s_yaml(blob(ephr))
 k8s_resource('ephr', port_forwards=4000, resource_deps=['postgres'])
 
-logto_deploy = '''
+logto = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logto
+  labels:
+    run: logto
+data:
+  TRUST_PROXY_HEADER: 'true'
+  DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/logto?sslmode=disable'
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -55,16 +80,13 @@ spec:
       containers:
         - name: logto
           image: ghcr.io/logto-io/logto:1.0.0-beta.14
-          command: [ "sh", "-c", "sleep 3 && npm run cli db seed -- --swe && npm start" ]
-          env:
-            - name: TRUST_PROXY_HEADER
-              value: "true"
-            - name: DB_URL
-              value: postgres://postgres:test@postgres:5432/logto?sslmode=disable
+          command: [ 'sh', '-c', 'sleep 3 && npm run cli db seed -- --swe && npm start' ]
+          envFrom:
+            - configMapRef:
+                name: logto
           ports:
-            - containerPort: 3001'''
-
-logto_service = '''
+            - containerPort: 3001
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -76,13 +98,25 @@ spec:
   - port: 3001
     protocol: TCP
   selector:
-    run: logto'''
+    run: logto
+'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD)
 
-k8s_yaml(blob(logto_deploy))
-k8s_yaml(blob(logto_service))
+k8s_yaml(blob(logto))
 k8s_resource('logto', port_forwards=3001, resource_deps=['postgres'])
 
-postgres_deploy = '''
+postgres = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+  labels:
+    run: postgres
+data:
+  POSTGRES_USER: {USER}
+  POSTGRES_PASSWORD: {PASS}
+  POSTGRES_DB: {DB}
+  PGUSER: {USER}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -105,13 +139,9 @@ spec:
             - postgres
             - -c
             - log_statement=all
-          env:
-            - name: PGUSER
-              value: postgres
-            - name: POSTGRES_DB
-              value: ephr
-            - name: POSTGRES_PASSWORD
-              value: test
+          envFrom:
+            - configMapRef:
+                name: postgres
           ports:
             - containerPort: 5432
           startupProbe:
@@ -120,9 +150,8 @@ spec:
                 - /bin/sh
                 - -c
                 - exec pg_isready -h localhost
-            periodSeconds: 5'''
-
-postgres_service = '''
+            periodSeconds: 5
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -134,13 +163,13 @@ spec:
     - port: 5432
       protocol: TCP
   selector:
-    run: postgres'''
+    run: postgres
+'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
 
-k8s_yaml(blob(postgres_deploy))
-k8s_yaml(blob(postgres_service))
+k8s_yaml(blob(postgres))
 k8s_resource('postgres', port_forwards=5432)
 
 local_resource('migrations',
-    cmd='dbmate --url postgres://postgres:test@localhost:5432/ephr?sslmode=disable up',
+    cmd='dbmate --url postgres://{USER}:{PASS}@localhost:5432/{DB}?sslmode=disable up'.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB),
     resource_deps=['postgres']
 )
