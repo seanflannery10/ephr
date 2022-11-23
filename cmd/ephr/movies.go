@@ -11,11 +11,8 @@ import (
 	"github.com/seanflannery10/ossa/read"
 	"github.com/seanflannery10/ossa/validator"
 	"net/http"
-)
-
-var (
-	ctx             = context.Background()
-	errEditConflict = errors.New("edit conflict")
+	"strconv"
+	"time"
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +43,9 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	movie, err := app.queries.CreateMovie(ctx, params)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
@@ -67,6 +67,9 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		httperrors.NotFound(w, r)
 		return
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
 	movie, err := app.queries.GetMovie(ctx, id)
 	if err != nil {
@@ -134,17 +137,25 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	movie, err := app.queries.UpdateMovie(ctx, params)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			httperrors.NotFound(w, r)
-		case errors.Is(err, errEditConflict):
-			httperrors.EditConflict(w, r)
 		default:
 			httperrors.ServerError(w, r, err)
 		}
 		return
+	}
+
+	if r.Header.Get("X-Expected-Version") != "" {
+		if strconv.FormatInt(int64(movie.Version), 32) != r.Header.Get("X-Expected-Version") {
+			httperrors.EditConflict(w, r)
+			return
+		}
 	}
 
 	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movie": movie})
@@ -159,6 +170,9 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		httperrors.NotFound(w, r)
 		return
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
 	err = app.queries.DeleteMovie(ctx, id)
 	if err != nil {
@@ -223,6 +237,9 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	default:
 		params.IDAsc = true
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
 	movies, err := app.queries.GetAllMovies(ctx, params)
 	if err != nil {

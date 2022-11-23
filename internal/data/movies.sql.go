@@ -172,7 +172,7 @@ SET title   = CASE WHEN $1::boolean THEN $2::TEXT ELSE title END,
     genres  = CASE WHEN $7::boolean THEN $8::TEXT[] ELSE genres END,
     version = version + 1
 WHERE id = $9
-RETURNING version
+RETURNING title, year, runtime, genres, version
 `
 
 type UpdateMovieParams struct {
@@ -187,7 +187,15 @@ type UpdateMovieParams struct {
 	ID            int64
 }
 
-func (q *Queries) UpdateMovie(ctx context.Context, arg *UpdateMovieParams) (int32, error) {
+type UpdateMovieRow struct {
+	Title   string
+	Year    int32
+	Runtime int32
+	Genres  []string
+	Version int32
+}
+
+func (q *Queries) UpdateMovie(ctx context.Context, arg *UpdateMovieParams) (*UpdateMovieRow, error) {
 	row := q.db.QueryRow(ctx, updateMovie,
 		arg.UpdateTitle,
 		arg.Title,
@@ -199,7 +207,13 @@ func (q *Queries) UpdateMovie(ctx context.Context, arg *UpdateMovieParams) (int3
 		arg.Genres,
 		arg.ID,
 	)
-	var version int32
-	err := row.Scan(&version)
-	return version, err
+	var i UpdateMovieRow
+	err := row.Scan(
+		&i.Title,
+		&i.Year,
+		&i.Runtime,
+		&i.Genres,
+		&i.Version,
+	)
+	return &i, err
 }

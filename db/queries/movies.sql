@@ -43,4 +43,4 @@ SET title   = CASE WHEN @update_title::boolean THEN @title::TEXT ELSE title END,
     genres  = CASE WHEN @update_genres::boolean THEN @genres::TEXT[] ELSE genres END,
     version = version + 1
 WHERE id = @id
-RETURNING version;
+RETURNING title, year, runtime, genres, version;
