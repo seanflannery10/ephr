@@ -14,8 +14,7 @@ FROM movies
 WHERE id = $1;
 
 -- name: GetAllMovies :many
-SELECT count(*) OVER (),
-       id,
+SELECT id,
        created_at,
        title,
        year,
@@ -34,6 +33,10 @@ ORDER BY CASE WHEN @id_asc::bool THEN id END,
          CASE WHEN @runtime_asc::bool THEN runtime END,
          CASE WHEN @runtime_desc::bool THEN runtime END DESC
 OFFSET @offset_ LIMIT @limit_;
+
+-- name: GetMovieCount :one
+SELECT count(*)
+FROM movies;
 
 -- name: UpdateMovie :one
 UPDATE movies

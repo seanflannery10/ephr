@@ -18,6 +18,7 @@ help:
 ## tidy: format code and tidy modfile
 .PHONY: tidy
 tidy:
+	sqlc compile
 	sqlc generate
 	go fmt ./...
 	go mod tidy -v

@@ -247,7 +247,13 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	metadata := app.calculateMetadata(movies[0].Count, filters.Page, filters.PageSize)
+	count, err := app.queries.GetMovieCount(ctx)
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+		return
+	}
+
+	metadata := app.calculateMetadata(count, filters.Page, filters.PageSize)
 
 	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
 	if err != nil {

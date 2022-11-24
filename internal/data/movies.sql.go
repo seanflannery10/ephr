@@ -53,8 +53,7 @@ func (q *Queries) DeleteMovie(ctx context.Context, id int64) error {
 }
 
 const getAllMovies = `-- name: GetAllMovies :many
-SELECT count(*) OVER (),
-       id,
+SELECT id,
        created_at,
        title,
        year,
@@ -90,18 +89,7 @@ type GetAllMoviesParams struct {
 	Limit       int32
 }
 
-type GetAllMoviesRow struct {
-	Count     int64
-	ID        int64
-	CreatedAt time.Time
-	Title     string
-	Year      int32
-	Runtime   int32
-	Genres    []string
-	Version   int32
-}
-
-func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]*GetAllMoviesRow, error) {
+func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]*Movie, error) {
 	rows, err := q.db.Query(ctx, getAllMovies,
 		arg.Title,
 		arg.Genres,
@@ -120,11 +108,10 @@ func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetAllMoviesRow
+	var items []*Movie
 	for rows.Next() {
-		var i GetAllMoviesRow
+		var i Movie
 		if err := rows.Scan(
-			&i.Count,
 			&i.ID,
 			&i.CreatedAt,
 			&i.Title,
@@ -162,6 +149,18 @@ func (q *Queries) GetMovie(ctx context.Context, id int64) (*Movie, error) {
 		&i.Version,
 	)
 	return &i, err
+}
+
+const getMovieCount = `-- name: GetMovieCount :one
+SELECT count(*)
+FROM movies
+`
+
+func (q *Queries) GetMovieCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getMovieCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const updateMovie = `-- name: UpdateMovie :one
