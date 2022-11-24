@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgx/v4 v4.17.2
-	github.com/seanflannery10/ossa v0.0.0-20221121224808-613f84f19d25
+	github.com/seanflannery10/ossa v0.0.0-20221124025258-f1728428a868
 )
 
 require (

@@ -8,40 +8,40 @@ import (
 )
 
 func (app *application) validateCreateMovie(v *validator.Validator, createMovieParams *data.CreateMovieParams) {
-	v.CheckField(createMovieParams.Title != "", "title", "must be provided")
-	v.CheckField(len(createMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
+	v.Check(createMovieParams.Title != "", "title", "must be provided")
+	v.Check(len(createMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
 
-	v.CheckField(createMovieParams.Year != 0, "year", "must be provided")
-	v.CheckField(createMovieParams.Year >= 1888, "year", "must be greater than 1888")
-	v.CheckField(createMovieParams.Year <= int32(time.Now().Year()), "year", "must not be in the future")
+	v.Check(createMovieParams.Year != 0, "year", "must be provided")
+	v.Check(createMovieParams.Year >= 1888, "year", "must be greater than 1888")
+	v.Check(createMovieParams.Year <= int32(time.Now().Year()), "year", "must not be in the future")
 
-	v.CheckField(createMovieParams.Runtime != 0, "runtime", "must be provided")
-	v.CheckField(createMovieParams.Runtime > 0, "runtime", "must be a positive integer")
+	v.Check(createMovieParams.Runtime != 0, "runtime", "must be provided")
+	v.Check(createMovieParams.Runtime > 0, "runtime", "must be a positive integer")
 
-	v.CheckField(createMovieParams.Genres != nil, "genres", "must be provided")
-	v.CheckField(len(createMovieParams.Genres) >= 1, "genres", "must contain at least 1 genre")
-	v.CheckField(len(createMovieParams.Genres) <= 5, "genres", "must not contain more than 5 genres")
-	v.CheckField(validator.NoDuplicates(createMovieParams.Genres), "genres", "must not contain duplicate values")
+	v.Check(createMovieParams.Genres != nil, "genres", "must be provided")
+	v.Check(len(createMovieParams.Genres) >= 1, "genres", "must contain at least 1 genre")
+	v.Check(len(createMovieParams.Genres) <= 5, "genres", "must not contain more than 5 genres")
+	v.Check(validator.NoDuplicates(createMovieParams.Genres), "genres", "must not contain duplicate values")
 }
 
 func (app *application) validateUpdateMovie(v *validator.Validator, updateMovieParams *data.UpdateMovieParams) {
 	if updateMovieParams.Title != "" {
-		v.CheckField(len(updateMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
+		v.Check(len(updateMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
 	}
 
 	if updateMovieParams.Year != 0 {
-		v.CheckField(updateMovieParams.Year >= 1888, "year", "must be greater than 1888")
-		v.CheckField(updateMovieParams.Year <= int32(time.Now().Year()), "year", "must not be in the future")
+		v.Check(updateMovieParams.Year >= 1888, "year", "must be greater than 1888")
+		v.Check(updateMovieParams.Year <= int32(time.Now().Year()), "year", "must not be in the future")
 	}
 
 	if updateMovieParams.Runtime != 0 {
-		v.CheckField(updateMovieParams.Runtime > 0, "runtime", "must be a positive integer")
+		v.Check(updateMovieParams.Runtime > 0, "runtime", "must be a positive integer")
 	}
 
 	if updateMovieParams.Genres != nil {
-		v.CheckField(len(updateMovieParams.Genres) >= 1, "genres", "must contain at least 1 genre")
-		v.CheckField(len(updateMovieParams.Genres) <= 5, "genres", "must not contain more than 5 genres")
-		v.CheckField(validator.NoDuplicates(updateMovieParams.Genres), "genres", "must not contain duplicate values")
+		v.Check(len(updateMovieParams.Genres) >= 1, "genres", "must contain at least 1 genre")
+		v.Check(len(updateMovieParams.Genres) <= 5, "genres", "must not contain more than 5 genres")
+		v.Check(validator.NoDuplicates(updateMovieParams.Genres), "genres", "must not contain duplicate values")
 	}
 }
 
@@ -69,12 +69,12 @@ type Metadata struct {
 }
 
 func (app *application) validateFilters(v *validator.Validator, f Filters) {
-	v.Check(f.Page > 0, "page must be greater than zero")
-	v.Check(f.Page <= 10_000_000, "page must be a maximum of 10 million")
-	v.Check(f.PageSize > 0, "page size must be greater than zero")
-	v.Check(f.PageSize <= 100, "page size must be a maximum of 100")
+	v.Check(f.Page > 0, "page", "must be greater than zero")
+	v.Check(f.Page <= 10_000_000, "page", "must be a maximum of 10 million")
+	v.Check(f.PageSize > 0, "page_size", "size must be greater than zero")
+	v.Check(f.PageSize <= 100, "page_size", "size must be a maximum of 100")
 
-	v.Check(validator.In(f.Sort, f.SortSafelist...), "invalid sort value")
+	v.Check(validator.In(f.Sort, f.SortSafelist...), "sort", "invalid sort value")
 }
 
 func (app *application) calculateMetadata(totalRecords int64, page, pageSize int) Metadata {

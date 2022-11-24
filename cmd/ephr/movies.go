@@ -36,7 +36,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Genres:  *input.Genres,
 	}
 
-	v := &validator.Validator{}
+	v := validator.New()
 
 	if app.validateCreateMovie(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
@@ -130,7 +130,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		params.Genres = *input.Genres
 	}
 
-	v := &validator.Validator{}
+	v := validator.New()
 
 	if app.validateUpdateMovie(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
@@ -192,11 +192,11 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
-	v := &validator.Validator{}
 
 	title := read.String(r, "title", "")
 	genres := read.CSV(r, "genres", []string{})
 
+	v := validator.New()
 	filters := Filters{}
 
 	filters.Page = read.Int(r, "page", 1, v)

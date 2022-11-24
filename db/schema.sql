@@ -14,12 +14,64 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: movies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.movies (
+    id bigint NOT NULL,
+    created_at timestamp(0) with time zone DEFAULT now() NOT NULL,
+    title text NOT NULL,
+    year integer NOT NULL,
+    runtime integer NOT NULL,
+    genres text[] NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    CONSTRAINT genres_length_check CHECK (((array_length(genres, 1) >= 1) AND (array_length(genres, 1) <= 5))),
+    CONSTRAINT movies_runtime_check CHECK ((runtime >= 0)),
+    CONSTRAINT movies_year_check CHECK (((year >= 1888) AND ((year)::double precision <= date_part('year'::text, now()))))
+);
+
+
+--
+-- Name: movies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.movies_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: movies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.movies_id_seq OWNED BY public.movies.id;
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.schema_migrations (
     version character varying(255) NOT NULL
 );
+
+
+--
+-- Name: movies id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movies ALTER COLUMN id SET DEFAULT nextval('public.movies_id_seq'::regclass);
+
+
+--
+-- Name: movies movies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movies
+    ADD CONSTRAINT movies_pkey PRIMARY KEY (id);
 
 
 --
@@ -31,6 +83,20 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: movies_genres_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX movies_genres_idx ON public.movies USING gin (genres);
+
+
+--
+-- Name: movies_title_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX movies_title_idx ON public.movies USING gin (to_tsvector('simple'::regconfig, title));
+
+
+--
 -- PostgreSQL database dump complete
 --
 
@@ -39,3 +105,5 @@ ALTER TABLE ONLY public.schema_migrations
 -- Dbmate schema migrations
 --
 
+INSERT INTO public.schema_migrations (version) VALUES
+    ('20221102005222');
