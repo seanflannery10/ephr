@@ -1,39 +1,47 @@
+# Vars
 POSTGRES_USER = 'postgres'
 POSTGRES_PASSWORD = 'test'
 POSTGRES_DB = 'ephr'
 
+# Extensions
 load('ext://tests/golang', 'test_go')
+load('ext://restart_process', 'docker_build_with_restart')
+
+# Tests
 test_go('test-ephr-cmd', './cmd/...', './cmd')
 test_go('test-ephr-internal', './internal/...', './internal')
 
-dockerfile="""
-# Build
-FROM golang:1.19.3-alpine AS builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY ./cmd/ ./cmd/
-COPY ./internal/ ./internal/
-RUN CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@latest
-RUN CGO_ENABLED=0 go build -gcflags="all=-N -l" -o /ephr ./cmd/ephr
+# Apply Migrations
+local_resource(
+  'migrations',
+  cmd='dbmate --url postgres://{USER}:{PASS}@localhost:5432/{DB}?sslmode=disable up'.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB),
+  resource_deps=['postgres']
+)
 
-# Run
-FROM debian:11
-RUN apt-get -y update
-RUN apt-get -y install tar
-WORKDIR /
-EXPOSE 4000 40000
-COPY --from=builder /ephr /
-COPY --from=builder /go/bin/dlv /
-CMD ["/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient"]
-ENTRYPOINT ["/ephr"]
-"""
-sync_cmd = sync('./cmd/ephr', '/cmd/ephr')
-sync_internal = sync('./internal', '/internal')
-docker_build("ephr-image", ".",
-    ignore=["Makefile", ".*", "*.md", "*.yaml", "db/**/*"],
-    live_update=[sync_cmd, sync_internal],
-    dockerfile_contents=dockerfile
+# Build App
+local_resource(
+  'ephr-compile',
+  'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="all=-N -l" -o ./bin/ephr ./cmd/ephr',
+   deps=['./cmd/ephr/', './internal/'],
+)
+
+# Run App
+dockerfile='''
+FROM golang:1.19.3-alpine
+COPY /bin/ephr /
+'''
+
+docker_build_with_restart(
+  'ephr-image',
+  '.',
+  entrypoint='/ephr',
+  dockerfile_contents=dockerfile,
+  only=[
+    './bin/'
+  ],
+  live_update=[
+    sync('./bin/', '/'),
+  ],
 )
 
 ephr = '''
@@ -70,9 +78,71 @@ spec:
           ports:
             - containerPort: 4000
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
-k8s_yaml(blob(ephr))
-k8s_resource('ephr', port_forwards=4000, resource_deps=['postgres'])
 
+k8s_yaml(blob(ephr))
+k8s_resource('ephr', port_forwards=['4000'], resource_deps=['postgres', 'ephr-compile'])
+
+# Run Debug App
+dockerfile='''
+FROM golang:1.19.3-alpine
+ENV PORT="4001"
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+COPY /bin/ephr /
+'''
+
+docker_build_with_restart(
+  'ephr-debug-image',
+  '.',
+  entrypoint='dlv --listen=:4009 --headless=true --api-version=2 --accept-multiclient exec /ephr',
+  dockerfile_contents=dockerfile,
+  only=[
+    './bin/'
+  ],
+  live_update=[
+    sync('./bin/', '/'),
+  ],
+)
+
+ephr_debug = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ephr-debug
+  labels:
+    run: ephr-debug
+data:
+  DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ephr-debug
+  labels:
+    app: ephr-debug
+spec:
+  selector:
+    matchLabels:
+      app: ephr-debug
+  template:
+    metadata:
+      labels:
+        app: ephr-debug
+    spec:
+      containers:
+        - name: ephr-debug
+          image: ephr-debug-image
+          envFrom:
+            - configMapRef:
+                name: ephr-debug
+          ports:
+            - containerPort: 4001
+            - containerPort: 4009
+'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
+
+k8s_yaml(blob(ephr_debug))
+k8s_resource('ephr-debug', port_forwards=['4001', '4009'], resource_deps=['postgres', 'ephr-compile'])
+
+# Run Logto
 logto = '''
 apiVersion: v1
 kind: ConfigMap
@@ -122,9 +192,11 @@ spec:
   selector:
     run: logto
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD)
+
 k8s_yaml(blob(logto))
 k8s_resource('logto', port_forwards=3001, resource_deps=['postgres'])
 
+# Run Postgres
 postgres = '''
 apiVersion: v1
 kind: ConfigMap
@@ -186,10 +258,6 @@ spec:
   selector:
     run: postgres
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
+
 k8s_yaml(blob(postgres))
 k8s_resource('postgres', port_forwards=5432)
-
-local_resource('migrations',
-    cmd='dbmate --url postgres://{USER}:{PASS}@localhost:5432/{DB}?sslmode=disable up'.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB),
-    resource_deps=['postgres']
-)

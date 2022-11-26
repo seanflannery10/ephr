@@ -1,27 +1,37 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/middleware"
+	"github.com/seanflannery10/ossa/version"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
+type connectionConfig struct {
+	port    int32
+	altPort int32
+	env     string
+}
+
 type config struct {
-	port  int32
-	env   string
-	db    database.Config
-	auth  middleware.AuthenticateConfig
-	cors  middleware.CorsConfig
-	limit middleware.RateLimitConfig
+	connection connectionConfig
+	db         database.Config
+	auth       middleware.AuthenticateConfig
+	cors       middleware.CorsConfig
+	limit      middleware.RateLimitConfig
 }
 
 func parseConfig() config {
-	return config{
-		port: getEnvInt32Value("PORT", 4000),
-		env:  getEnvStrValue("ENV", "dev"),
+	config := config{
+		connection: connectionConfig{
+			port: getEnvInt32Value("PORT", 4000),
+			env:  getEnvStrValue("ENV", "dev"),
+		},
 		db: database.Config{
 			DSN:                   getEnvStrValue("DB_URL", ""),
 			MaxConns:              getEnvInt32Value("DB_MAX_CONNS", 25),
@@ -43,6 +53,16 @@ func parseConfig() config {
 			Burst:   int(getEnvInt32Value("RATE_LIMIT_BURST", 2)),
 		},
 	}
+
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version.Get())
+		os.Exit(0)
+	}
+
+	return config
 }
 
 func getEnvStrValue(key string, defaultValue string) string {

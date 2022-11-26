@@ -1,14 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/server"
-	"github.com/seanflannery10/ossa/version"
 	"log"
-	"os"
 	"sync"
 )
 
@@ -19,14 +16,6 @@ type application struct {
 }
 
 func main() {
-	displayVersion := flag.Bool("version", false, "Display version and exit")
-	flag.Parse()
-
-	if *displayVersion {
-		fmt.Printf("Version:\t%s\n", version.Get())
-		os.Exit(0)
-	}
-
 	cfg := parseConfig()
 
 	dbpool, err := database.New(cfg.db)
@@ -43,7 +32,7 @@ func main() {
 		queries: queries,
 	}
 
-	address := fmt.Sprintf(":%d", app.config.port)
+	address := fmt.Sprintf(":%d", app.config.connection.port)
 	srv := server.New(address, app.routes())
 
 	err = srv.Run()
