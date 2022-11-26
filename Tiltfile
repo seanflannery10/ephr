@@ -1,22 +1,17 @@
-# Vars
-POSTGRES_USER = 'postgres'
-POSTGRES_PASSWORD = 'test'
-POSTGRES_DB = 'ephr'
-
-# Extensions
+load('ext://dotenv', 'dotenv')
 load('ext://tests/golang', 'test_go')
 load('ext://restart_process', 'docker_build_with_restart')
+
+# Load ENV Settings
+dotenv()
+
+POSTGRES_USER = os.getenv('POSTGRES_USER')
+POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
+POSTGRES_DB = os.getenv('POSTGRES_DB')
 
 # Tests
 test_go('test-ephr-cmd', './cmd/...', './cmd')
 test_go('test-ephr-internal', './internal/...', './internal')
-
-# Apply Migrations
-local_resource(
-  'migrations',
-  cmd='dbmate --url postgres://{USER}:{PASS}@localhost:5432/{DB}?sslmode=disable up'.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB),
-  resource_deps=['postgres']
-)
 
 # Build App
 local_resource(
@@ -27,7 +22,7 @@ local_resource(
 
 # Run App
 dockerfile='''
-FROM golang:1.19.3-alpine
+FROM alpine
 COPY /bin/ephr /
 '''
 
@@ -36,12 +31,8 @@ docker_build_with_restart(
   '.',
   entrypoint='/ephr',
   dockerfile_contents=dockerfile,
-  only=[
-    './bin/'
-  ],
-  live_update=[
-    sync('./bin/', '/'),
-  ],
+  only=['./bin/'],
+  live_update=[sync('./bin/', '/')],
 )
 
 ephr = '''
@@ -83,24 +74,23 @@ k8s_yaml(blob(ephr))
 k8s_resource('ephr', port_forwards=['4000'], resource_deps=['postgres', 'ephr-compile'])
 
 # Run Debug App
-dockerfile='''
-FROM golang:1.19.3-alpine
-ENV PORT="4001"
-RUN go install github.com/go-delve/delve/cmd/dlv@latest
+debug_dockerfile='''
+FROM golang:1.19.3-alpine AS builder
+RUN CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@latest
+
+FROM alpine
+ENV PORT='4001'
+COPY --from=builder /go/bin/dlv /
 COPY /bin/ephr /
 '''
 
 docker_build_with_restart(
   'ephr-debug-image',
   '.',
-  entrypoint='dlv --listen=:4009 --headless=true --api-version=2 --accept-multiclient exec /ephr',
-  dockerfile_contents=dockerfile,
-  only=[
-    './bin/'
-  ],
-  live_update=[
-    sync('./bin/', '/'),
-  ],
+  entrypoint='/dlv --listen=:4009 --headless=true --api-version=2 --accept-multiclient exec /ephr',
+  dockerfile_contents=debug_dockerfile,
+  only=['./bin/'],
+  live_update=[sync('./bin/', '/')],
 )
 
 ephr_debug = '''
@@ -141,6 +131,41 @@ spec:
 
 k8s_yaml(blob(ephr_debug))
 k8s_resource('ephr-debug', port_forwards=['4001', '4009'], resource_deps=['postgres', 'ephr-compile'])
+
+# Run App Migrations
+migrations_dockerfile='''
+FROM golang:1.19.3-alpine AS builder
+RUN CGO_ENABLED=0 go install github.com/amacneil/dbmate@latest
+
+FROM alpine
+COPY --from=builder /go/bin/dbmate /
+COPY /db/migrations/ /db/migrations/
+'''
+
+docker_build(
+  'ephr-migrations-image',
+  '.',
+  dockerfile_contents=migrations_dockerfile,
+  only=['./db/migrations/'],
+)
+
+ephr_migrations = '''
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ephr-migrations
+spec:
+  template:
+    spec:
+      containers:
+      - name: ephr-migrations
+        image: ephr-migrations-image
+        command: ['/dbmate', '--no-dump-schema', '--url', 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable', 'up']
+      restartPolicy: Never
+'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
+
+k8s_yaml(blob(ephr_migrations))
+k8s_resource('ephr-migrations', resource_deps=['postgres'])
 
 # Run Logto
 logto = '''
