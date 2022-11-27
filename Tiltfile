@@ -41,7 +41,7 @@ kind: ConfigMap
 metadata:
   name: ephr
   labels:
-    run: ephr
+    app: ephr
 data:
   DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable'
 ---
@@ -73,65 +73,6 @@ spec:
 k8s_yaml(blob(ephr))
 k8s_resource('ephr', port_forwards=['4000'], resource_deps=['postgres', 'ephr-compile'])
 
-# Run Debug App
-debug_dockerfile='''
-FROM golang:1.19.3-alpine AS builder
-RUN CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@latest
-
-FROM alpine
-ENV PORT='4001'
-COPY --from=builder /go/bin/dlv /
-COPY /bin/ephr /
-'''
-
-docker_build_with_restart(
-  'ephr-debug-image',
-  '.',
-  entrypoint='/dlv --listen=:4009 --headless=true --api-version=2 --accept-multiclient exec /ephr',
-  dockerfile_contents=debug_dockerfile,
-  only=['./bin/'],
-  live_update=[sync('./bin/', '/')],
-)
-
-ephr_debug = '''
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ephr-debug
-  labels:
-    run: ephr-debug
-data:
-  DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable'
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ephr-debug
-  labels:
-    app: ephr-debug
-spec:
-  selector:
-    matchLabels:
-      app: ephr-debug
-  template:
-    metadata:
-      labels:
-        app: ephr-debug
-    spec:
-      containers:
-        - name: ephr-debug
-          image: ephr-debug-image
-          envFrom:
-            - configMapRef:
-                name: ephr-debug
-          ports:
-            - containerPort: 4001
-            - containerPort: 4009
-'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
-
-k8s_yaml(blob(ephr_debug))
-k8s_resource('ephr-debug', port_forwards=['4001', '4009'], resource_deps=['postgres', 'ephr-compile'])
-
 # Run App Migrations
 migrations_dockerfile='''
 FROM golang:1.19.3-alpine AS builder
@@ -147,21 +88,36 @@ docker_build(
   '.',
   dockerfile_contents=migrations_dockerfile,
   only=['./db/migrations/'],
+  live_update=[sync('./db/migrations/', '/db/migrations/')],
 )
 
 ephr_migrations = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ephr-migrations
+  labels:
+    app: ephr-migrations
+data:
+  DATABASE_URL: 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable'
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: ephr-migrations
+  labels:
+    app: ephr-migrations
 spec:
   template:
     spec:
+      restartPolicy: Never
       containers:
       - name: ephr-migrations
         image: ephr-migrations-image
-        command: ['/dbmate', '--no-dump-schema', '--url', 'postgres://{USER}:{PASS}@postgres:5432/{DB}?sslmode=disable', 'up']
-      restartPolicy: Never
+        command: ["/bin/sh", "-c", '/dbmate down; /dbmate up']
+        envFrom:
+          - configMapRef:
+              name: ephr-migrations
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
 
 k8s_yaml(blob(ephr_migrations))
@@ -174,7 +130,7 @@ kind: ConfigMap
 metadata:
   name: logto
   labels:
-    run: logto
+    app: logto
 data:
   TRUST_PROXY_HEADER: 'true'
   DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/logto?sslmode=disable'
@@ -184,15 +140,15 @@ kind: Deployment
 metadata:
   name: logto
   labels:
-    run: logto
+    app: logto
 spec:
   selector:
     matchLabels:
-      run: logto
+      app: logto
   template:
     metadata:
       labels:
-        run: logto
+        app: logto
     spec:
       containers:
         - name: logto
@@ -209,13 +165,13 @@ kind: Service
 metadata:
   name: logto
   labels:
-    run: logto
+    app: logto
 spec:
   ports:
   - port: 3001
     protocol: TCP
   selector:
-    run: logto
+    app: logto
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD)
 
 k8s_yaml(blob(logto))
@@ -228,7 +184,7 @@ kind: ConfigMap
 metadata:
   name: postgres
   labels:
-    run: postgres
+    app: postgres
 data:
   POSTGRES_USER: {USER}
   POSTGRES_PASSWORD: {PASS}
@@ -240,15 +196,15 @@ kind: Deployment
 metadata:
   name: postgres
   labels:
-    run: postgres
+    app: postgres
 spec:
   selector:
     matchLabels:
-      run: postgres
+      app: postgres
   template:
     metadata:
       labels:
-        run: postgres
+        app: postgres
     spec:
       containers:
         - name: postgres
@@ -275,13 +231,13 @@ kind: Service
 metadata:
   name: postgres
   labels:
-    run: postgres
+    app: postgres
 spec:
   ports:
     - port: 5432
       protocol: TCP
   selector:
-    run: postgres
+    app: postgres
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
 
 k8s_yaml(blob(postgres))
