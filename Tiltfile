@@ -23,7 +23,7 @@ local_resource(
 # Run App
 dockerfile='''
 FROM alpine
-COPY /bin/ephr /
+COPY /bin/ /
 '''
 
 docker_build_with_restart(
@@ -75,11 +75,7 @@ k8s_resource('ephr', port_forwards=['4000'], resource_deps=['postgres', 'ephr-co
 
 # Run App Migrations
 migrations_dockerfile='''
-FROM golang:1.19.3-alpine AS builder
-RUN CGO_ENABLED=0 go install github.com/amacneil/dbmate@latest
-
-FROM alpine
-COPY --from=builder /go/bin/dbmate /
+FROM amacneil/dbmate
 COPY /db/migrations/ /db/migrations/
 '''
 
@@ -88,7 +84,6 @@ docker_build(
   '.',
   dockerfile_contents=migrations_dockerfile,
   only=['./db/migrations/'],
-  live_update=[sync('./db/migrations/', '/db/migrations/')],
 )
 
 ephr_migrations = '''
@@ -114,7 +109,7 @@ spec:
       containers:
       - name: ephr-migrations
         image: ephr-migrations-image
-        command: ["/bin/sh", "-c", '/dbmate down; /dbmate up']
+        command: ["/bin/sh", "-c", 'dbmate down; dbmate up']
         envFrom:
           - configMapRef:
               name: ephr-migrations
