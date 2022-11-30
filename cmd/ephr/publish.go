@@ -2,10 +2,11 @@ package main
 
 import (
 	"expvar"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/seanflannery10/ossa/version"
 	"runtime"
 	"time"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/seanflannery10/ossa/version"
 )
 
 func publishVars(db *pgxpool.Pool) {

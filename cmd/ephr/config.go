@@ -3,19 +3,19 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/seanflannery10/ossa/database"
-	"github.com/seanflannery10/ossa/middleware"
-	"github.com/seanflannery10/ossa/version"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/seanflannery10/ossa/database"
+	"github.com/seanflannery10/ossa/middleware"
+	"github.com/seanflannery10/ossa/version"
 )
 
 type connectionConfig struct {
-	port    int32
-	altPort int32
-	env     string
+	port int32
+	env  string
 }
 
 type config struct {
@@ -69,6 +69,7 @@ func getEnvStrValue(key string, defaultValue string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
 	}
+
 	return defaultValue
 }
 
@@ -81,18 +82,20 @@ func getEnvBoolValue(key string, defaultValue bool) bool {
 			return false
 		}
 	}
+
 	return defaultValue
 }
 
 func getEnvInt32Value(key string, defaultValue int32) int32 {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
-		i, err := strconv.Atoi(value)
+		i, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		return int32(i)
 	}
+
 	return defaultValue
 }
 
@@ -105,5 +108,6 @@ func getEnvFloat64Value(key string, defaultValue float64) float64 {
 
 		return f
 	}
+
 	return defaultValue
 }

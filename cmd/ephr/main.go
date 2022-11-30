@@ -2,17 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/server"
-	"log"
-	"sync"
 )
 
 type application struct {
 	config  config
 	queries *data.Queries
-	wg      sync.WaitGroup
 }
 
 func main() {

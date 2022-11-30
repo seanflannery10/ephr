@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/jackc/pgx/v4"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/jsonutil"
 	"github.com/seanflannery10/ossa/read"
 	"github.com/seanflannery10/ossa/validator"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +47,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	movie, err := app.queries.CreateMovie(ctx, params)
+	movie, err := app.queries.CreateMovie(ctx, params) //nolint:contextcheck
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -71,7 +72,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	movie, err := app.queries.GetMovie(ctx, id)
+	movie, err := app.queries.GetMovie(ctx, id) //nolint:contextcheck
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -79,6 +80,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		default:
 			httperrors.ServerError(w, r, err)
 		}
+
 		return
 	}
 
@@ -140,7 +142,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	movie, err := app.queries.UpdateMovie(ctx, params)
+	movie, err := app.queries.UpdateMovie(ctx, params) //nolint:contextcheck
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -148,6 +150,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		default:
 			httperrors.ServerError(w, r, err)
 		}
+
 		return
 	}
 
@@ -174,7 +177,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err = app.queries.DeleteMovie(ctx, id)
+	err = app.queries.DeleteMovie(ctx, id) //nolint:contextcheck
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -182,6 +185,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		default:
 			httperrors.ServerError(w, r, err)
 		}
+
 		return
 	}
 
@@ -192,7 +196,6 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
-
 	title := read.String(r, "title", "")
 	genres := read.CSV(r, "genres", []string{})
 
@@ -241,13 +244,13 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	movies, err := app.queries.GetAllMovies(ctx, params)
+	movies, err := app.queries.GetAllMovies(ctx, params) //nolint:contextcheck
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	count, err := app.queries.GetMovieCount(ctx)
+	count, err := app.queries.GetMovieCount(ctx) //nolint:contextcheck
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return

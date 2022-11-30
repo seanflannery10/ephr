@@ -1,0 +1,60 @@
+name: "Test Code"
+
+on:
+  push:
+    tags: [ "-v*" ]
+    branches: [ "main" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.X
+
+      - name: Tidy code
+        run: go mod tidy
+
+      - name: Format code
+        run: go fmt ./...
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Apply formatting changes
+  audit:
+    name: Audit
+    needs: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.X
+
+      - name: Vet code
+        run: go vet ./...
+
+      - name: Test code
+        run: go test -race -vet=off ./...
+
+      - name: Verify code
+        run: go mod verify
+
+      - name: Build code
+        run: go build ./...

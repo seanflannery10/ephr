@@ -20,14 +20,12 @@ help:
 tidy:
 	sqlc compile
 	sqlc generate
-	go fmt ./...
 	go mod tidy -v
 
 ## audit: run quality control checks
 .PHONY: audit
 audit: tidy
-	go vet ./...
-	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
+	golangci-lint run --fix
 	go test -race -vet=off ./...
 	go mod verify
 

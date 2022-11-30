@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/seanflannery10/ephr/internal/data"
-	"github.com/seanflannery10/ossa/validator"
 	"math"
 	"time"
+
+	"github.com/seanflannery10/ephr/internal/data"
+	"github.com/seanflannery10/ossa/validator"
 )
 
 func (app *application) validateCreateMovie(v *validator.Validator, createMovieParams *data.CreateMovieParams) {

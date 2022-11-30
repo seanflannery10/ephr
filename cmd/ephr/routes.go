@@ -2,11 +2,12 @@ package main
 
 import (
 	"expvar"
+	"net/http"
+
 	"github.com/seanflannery10/ossa/handlers"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/httprouter"
 	"github.com/seanflannery10/ossa/middleware"
-	"net/http"
 )
 
 func (app *application) routes() http.Handler {
