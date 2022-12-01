@@ -17,5 +17,6 @@ jobs:
         with:
           go-version: 1.19.X
 
-      - uses: imjasonh/setup-ko@v0.6
-      - run: ko build
+      - name: Build container image
+        uses: imjasonh/setup-ko@v0.6
+        run: ko build ./cmd/ephr
