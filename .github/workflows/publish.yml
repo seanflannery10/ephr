@@ -2,10 +2,15 @@ name: Publish
 
 on:
   push:
+    tags: [ "-v*" ]
     branches: ['main']
+
+permissions:
+  contents: read
 
 jobs:
   publish:
+    needs: test
     name: Publish
     runs-on: ubuntu-latest
     steps:
