@@ -1,5 +1,6 @@
 load('ext://dotenv', 'dotenv')
 load('ext://tests/golang', 'test_go')
+load('ext://helm_resource', 'helm_resource', 'helm_repo')
 load('ext://restart_process', 'docker_build_with_restart')
 
 # Load ENV Settings
@@ -71,7 +72,7 @@ spec:
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
 
 k8s_yaml(blob(ephr))
-k8s_resource('ephr', port_forwards=['4000'], resource_deps=['postgres', 'ephr-compile'])
+k8s_resource('ephr', port_forwards='4000', resource_deps=['postgres', 'ephr-compile'])
 
 # Run App Migrations
 migrations_dockerfile='''
@@ -170,7 +171,7 @@ spec:
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD)
 
 k8s_yaml(blob(logto))
-k8s_resource('logto', port_forwards=3001, resource_deps=['postgres'])
+k8s_resource('logto', port_forwards='3001', resource_deps=['postgres'])
 
 # Run Postgres
 postgres = '''
@@ -236,4 +237,7 @@ spec:
 '''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD, DB=POSTGRES_DB)
 
 k8s_yaml(blob(postgres))
-k8s_resource('postgres', port_forwards=5432)
+k8s_resource('postgres', port_forwards='5432')
+
+helm_repo('prometheus-community', 'https://prometheus-community.github.io/helm-charts')
+helm_resource('prometheus', 'prometheus-community/prometheus', port_forwards='9533')
