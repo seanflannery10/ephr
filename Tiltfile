@@ -239,5 +239,14 @@ spec:
 k8s_yaml(blob(postgres))
 k8s_resource('postgres', port_forwards='5432')
 
-helm_repo('prometheus-community', 'https://prometheus-community.github.io/helm-charts')
-helm_resource('prometheus', 'prometheus-community/prometheus', port_forwards='9533')
+namespace = '''
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: 'platform'
+'''
+
+k8s_yaml(blob(namespace))
+
+helm_repo('signoz-charts', 'https://charts.signoz.io')
+helm_resource('signoz', 'signoz/signoz', namespace='platform', port_forwards='3301')
