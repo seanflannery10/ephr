@@ -56,7 +56,7 @@ up:
 ## down: stop the application stack
 .PHONY: down
 down:
-	tilt down
+	tilt down --delete-namespaces
 
 # ==================================================================================== #
 # DB

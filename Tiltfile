@@ -1,9 +1,5 @@
-load('ext://dotenv', 'dotenv')
-load('ext://tests/golang', 'test_go')
-load('ext://helm_resource', 'helm_resource', 'helm_repo')
-load('ext://restart_process', 'docker_build_with_restart')
-
 # Load ENV Settings
+load('ext://dotenv', 'dotenv')
 dotenv()
 
 POSTGRES_USER = os.getenv('POSTGRES_USER')
@@ -11,6 +7,7 @@ POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
 POSTGRES_DB = os.getenv('POSTGRES_DB')
 
 # Tests
+load('ext://tests/golang', 'test_go')
 test_go('test-ephr-cmd', './cmd/...', './cmd')
 test_go('test-ephr-internal', './internal/...', './internal')
 
@@ -27,6 +24,7 @@ FROM alpine
 COPY /bin/ /
 '''
 
+load('ext://restart_process', 'docker_build_with_restart')
 docker_build_with_restart(
   'ephr-image',
   '.',
@@ -239,14 +237,14 @@ spec:
 k8s_yaml(blob(postgres))
 k8s_resource('postgres', port_forwards='5432')
 
-namespace = '''
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: 'platform'
-'''
+load('ext://namespace', 'namespace_create')
+namespace_create('platform')
 
-k8s_yaml(blob(namespace))
-
+load('ext://helm_resource', 'helm_resource', 'helm_repo')
 helm_repo('signoz-charts', 'https://charts.signoz.io')
-helm_resource('signoz', 'signoz/signoz', namespace='platform', port_forwards='3301')
+helm_resource(
+  'signoz',
+  'signoz/signoz',
+  namespace='platform',
+  port_forwards='3301'
+)
