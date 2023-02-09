@@ -29,7 +29,7 @@ type CreateMovieRow struct {
 	Version   int32
 }
 
-func (q *Queries) CreateMovie(ctx context.Context, arg *CreateMovieParams) (*CreateMovieRow, error) {
+func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (CreateMovieRow, error) {
 	row := q.db.QueryRow(ctx, createMovie,
 		arg.Title,
 		arg.Year,
@@ -38,7 +38,7 @@ func (q *Queries) CreateMovie(ctx context.Context, arg *CreateMovieParams) (*Cre
 	)
 	var i CreateMovieRow
 	err := row.Scan(&i.ID, &i.CreatedAt, &i.Version)
-	return &i, err
+	return i, err
 }
 
 const deleteMovie = `-- name: DeleteMovie :exec
@@ -89,7 +89,7 @@ type GetAllMoviesParams struct {
 	Limit       int32
 }
 
-func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]*Movie, error) {
+func (q *Queries) GetAllMovies(ctx context.Context, arg GetAllMoviesParams) ([]Movie, error) {
 	rows, err := q.db.Query(ctx, getAllMovies,
 		arg.Title,
 		arg.Genres,
@@ -108,7 +108,7 @@ func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Movie
+	var items []Movie
 	for rows.Next() {
 		var i Movie
 		if err := rows.Scan(
@@ -122,7 +122,7 @@ func (q *Queries) GetAllMovies(ctx context.Context, arg *GetAllMoviesParams) ([]
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ FROM movies
 WHERE id = $1
 `
 
-func (q *Queries) GetMovie(ctx context.Context, id int64) (*Movie, error) {
+func (q *Queries) GetMovie(ctx context.Context, id int64) (Movie, error) {
 	row := q.db.QueryRow(ctx, getMovie, id)
 	var i Movie
 	err := row.Scan(
@@ -148,7 +148,7 @@ func (q *Queries) GetMovie(ctx context.Context, id int64) (*Movie, error) {
 		&i.Genres,
 		&i.Version,
 	)
-	return &i, err
+	return i, err
 }
 
 const getMovieCount = `-- name: GetMovieCount :one
@@ -194,7 +194,7 @@ type UpdateMovieRow struct {
 	Version int32
 }
 
-func (q *Queries) UpdateMovie(ctx context.Context, arg *UpdateMovieParams) (*UpdateMovieRow, error) {
+func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (UpdateMovieRow, error) {
 	row := q.db.QueryRow(ctx, updateMovie,
 		arg.UpdateTitle,
 		arg.Title,
@@ -214,5 +214,5 @@ func (q *Queries) UpdateMovie(ctx context.Context, arg *UpdateMovieParams) (*Upd
 		&i.Genres,
 		&i.Version,
 	)
-	return &i, err
+	return i, err
 }

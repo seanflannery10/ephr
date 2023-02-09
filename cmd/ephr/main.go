@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/seanflannery10/ephr/internal/data"
@@ -31,8 +30,7 @@ func main() {
 		queries: queries,
 	}
 
-	address := fmt.Sprintf(":%d", app.config.connection.port)
-	srv := server.New(address, app.routes())
+	srv := server.New(app.config.connection.port, app.routes())
 
 	err = srv.Run()
 	if err != nil {

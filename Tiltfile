@@ -117,60 +117,6 @@ spec:
 k8s_yaml(blob(ephr_migrations))
 k8s_resource('ephr-migrations', resource_deps=['postgres'])
 
-# Run Logto
-logto = '''
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: logto
-  labels:
-    app: logto
-data:
-  TRUST_PROXY_HEADER: 'true'
-  DB_URL: 'postgres://{USER}:{PASS}@postgres:5432/logto?sslmode=disable'
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: logto
-  labels:
-    app: logto
-spec:
-  selector:
-    matchLabels:
-      app: logto
-  template:
-    metadata:
-      labels:
-        app: logto
-    spec:
-      containers:
-        - name: logto
-          image: ghcr.io/logto-io/logto:1.0.0-beta.14
-          command: [ 'sh', '-c', 'sleep 3 && npm run cli db seed -- --swe && npm start' ]
-          envFrom:
-            - configMapRef:
-                name: logto
-          ports:
-            - containerPort: 3001
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: logto
-  labels:
-    app: logto
-spec:
-  ports:
-  - port: 3001
-    protocol: TCP
-  selector:
-    app: logto
-'''.format(USER=POSTGRES_USER, PASS=POSTGRES_PASSWORD)
-
-k8s_yaml(blob(logto))
-k8s_resource('logto', port_forwards='3001', resource_deps=['postgres'])
-
 # Run Postgres
 postgres = '''
 apiVersion: v1
@@ -236,15 +182,3 @@ spec:
 
 k8s_yaml(blob(postgres))
 k8s_resource('postgres', port_forwards='5432')
-
-load('ext://namespace', 'namespace_create')
-namespace_create('platform')
-
-load('ext://helm_resource', 'helm_resource', 'helm_repo')
-helm_repo('signoz-charts', 'https://charts.signoz.io')
-helm_resource(
-  'signoz',
-  'signoz/signoz',
-  namespace='platform',
-  port_forwards='3301'
-)

@@ -10,31 +10,30 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/seanflannery10/ephr/internal/data"
+	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
-	"github.com/seanflannery10/ossa/jsonutil"
-	"github.com/seanflannery10/ossa/read"
 	"github.com/seanflannery10/ossa/validator"
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title   *string   `json:"title"`
-		Year    *int32    `json:"year"`
-		Runtime *int32    `json:"runtime"`
-		Genres  *[]string `json:"genres"`
+		Title   string   `json:"title"`
+		Year    int32    `json:"year"`
+		Runtime int32    `json:"runtime"`
+		Genres  []string `json:"genres"`
 	}
 
-	err := jsonutil.Read(w, r, &input)
+	err := helpers.ReadJSON(w, r, &input)
 	if err != nil {
 		httperrors.BadRequest(w, r, err)
 		return
 	}
 
-	params := &data.CreateMovieParams{
-		Title:   *input.Title,
-		Year:    *input.Year,
-		Runtime: *input.Runtime,
-		Genres:  *input.Genres,
+	params := data.CreateMovieParams{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
 	}
 
 	v := validator.New()
@@ -44,10 +43,10 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	movie, err := app.queries.CreateMovie(ctx, params) //nolint:contextcheck
+	movie, err := app.queries.CreateMovie(ctx, params)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -56,23 +55,23 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/movies/%d", movie.ID))
 
-	err = jsonutil.WriteWithHeaders(w, http.StatusCreated, map[string]any{"movie": movie}, headers)
+	err = helpers.WriteJSONWithHeaders(w, http.StatusCreated, map[string]any{"movie": movie}, headers)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := read.IDParam(r)
+	id, err := helpers.ReadIDParam(r)
 	if err != nil {
 		httperrors.NotFound(w, r)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	movie, err := app.queries.GetMovie(ctx, id) //nolint:contextcheck
+	movie, err := app.queries.GetMovie(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -84,7 +83,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movie": movie})
+	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"movie": movie})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}
@@ -92,25 +91,25 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 
 func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title   *string   `json:"title,omitempty"`
-		Year    *int32    `json:"year,omitempty"`
-		Runtime *int32    `json:"runtime,omitempty"`
-		Genres  *[]string `json:"genres,omitempty"`
+		Title   *string  `json:"title,omitempty"`
+		Year    *int32   `json:"year,omitempty"`
+		Runtime *int32   `json:"runtime,omitempty"`
+		Genres  []string `json:"genres,omitempty"`
 	}
 
-	err := jsonutil.Read(w, r, &input)
+	err := helpers.ReadJSON(w, r, &input)
 	if err != nil {
 		httperrors.BadRequest(w, r, err)
 		return
 	}
 
-	id, err := read.IDParam(r)
+	id, err := helpers.ReadIDParam(r)
 	if err != nil {
 		httperrors.NotFound(w, r)
 		return
 	}
 
-	params := &data.UpdateMovieParams{ID: id}
+	params := data.UpdateMovieParams{ID: id}
 
 	if input.Title != nil {
 		params.UpdateTitle = true
@@ -129,7 +128,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	if input.Genres != nil {
 		params.UpdateGenres = true
-		params.Genres = *input.Genres
+		params.Genres = input.Genres
 	}
 
 	v := validator.New()
@@ -139,10 +138,10 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	movie, err := app.queries.UpdateMovie(ctx, params) //nolint:contextcheck
+	movie, err := app.queries.UpdateMovie(ctx, params)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -161,23 +160,23 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movie": movie})
+	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"movie": movie})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}
 }
 
 func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := read.IDParam(r)
+	id, err := helpers.ReadIDParam(r)
 	if err != nil {
 		httperrors.NotFound(w, r)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	err = app.queries.DeleteMovie(ctx, id) //nolint:contextcheck
+	err = app.queries.DeleteMovie(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -189,38 +188,45 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = jsonutil.Write(w, http.StatusOK, map[string]any{"message": "movie successfully deleted"})
+	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"message": "movie successfully deleted"})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}
 }
 
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
-	title := read.String(r, "title", "")
-	genres := read.CSV(r, "genres", []string{})
+	var input struct {
+		Title  string
+		Genres []string
+		Filters
+	}
 
 	v := validator.New()
-	filters := Filters{}
 
-	filters.Page = read.Int(r, "page", 1, v)
-	filters.PageSize = read.Int(r, "page_size", 20, v)
+	qs := r.URL.Query()
 
-	filters.Sort = read.String(r, "sort", "id")
-	filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+	input.Title = helpers.ReadStringParam(qs, "title", "")
+	input.Genres = helpers.ReadCSVParam(qs, "genres", []string{})
 
-	if app.validateFilters(v, filters); v.HasErrors() {
+	input.Filters.Page = helpers.ReadIntParam(qs, "page", 1, v)
+	input.Filters.PageSize = helpers.ReadIntParam(qs, "page_size", 20, v)
+
+	input.Filters.Sort = helpers.ReadStringParam(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	if app.validateFilters(v, input.Filters); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
-	params := &data.GetAllMoviesParams{
-		Title:  title,
-		Genres: genres,
-		Offset: filters.offset(),
-		Limit:  filters.limit(),
+	params := data.GetAllMoviesParams{
+		Title:  input.Title,
+		Genres: input.Genres,
+		Offset: input.Filters.offset(),
+		Limit:  input.Filters.limit(),
 	}
 
-	switch filters.Sort {
+	switch input.Filters.Sort {
 	case "id":
 		params.IDAsc = true
 	case "-id":
@@ -241,24 +247,24 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		params.IDAsc = true
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	movies, err := app.queries.GetAllMovies(ctx, params) //nolint:contextcheck
+	movies, err := app.queries.GetAllMovies(ctx, params)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	count, err := app.queries.GetMovieCount(ctx) //nolint:contextcheck
+	count, err := app.queries.GetMovieCount(ctx)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	metadata := app.calculateMetadata(count, filters.Page, filters.PageSize)
+	metadata := app.calculateMetadata(count, input.Filters.Page, input.Filters.PageSize)
 
-	err = jsonutil.Write(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
+	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}

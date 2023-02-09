@@ -4,32 +4,38 @@ import (
 	"expvar"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/seanflannery10/ossa/handlers"
 	"github.com/seanflannery10/ossa/httperrors"
-	"github.com/seanflannery10/ossa/httprouter"
-	"github.com/seanflannery10/ossa/middleware"
 )
 
 func (app *application) routes() http.Handler {
-	m := middleware.New()
+	r := chi.NewRouter()
 
-	m.SetAuthenticateConfig(app.config.auth.JWKSURL, app.config.auth.APIURL)
-	m.SetCorsConfig(app.config.cors.TrustedOrigins)
-	m.SetRateLimitConfig(app.config.limit.Enabled, app.config.limit.RPS, app.config.limit.Burst)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"https://*", "http://*"},
+	}))
 
-	router := httprouter.New()
+	r.NotFound(httperrors.NotFound)
+	r.MethodNotAllowed(httperrors.MethodNotAllowed)
 
-	router.NotFound = http.HandlerFunc(httperrors.NotFound)
-	router.MethodNotAllowed = http.HandlerFunc(httperrors.MethodNotAllowed)
+	r.Get("/debug/vars", expvar.Handler().ServeHTTP)
+	r.Get("/v1/healthcheck", handlers.Healthcheck)
 
-	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", handlers.Healthcheck)
+	r.Route("/v1/movies", func(r chi.Router) {
+		r.Get("/", app.listMoviesHandler)
+		r.Post("/", app.createMovieHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/movies", app.listMoviesHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMovieHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", app.showMovieHandler)
+			r.Patch("/", app.updateMovieHandler)
+			r.Delete("/", app.deleteMovieHandler)
+		})
+	})
 
-	return m.Chain(m.Metrics, m.RecoverPanic, m.CORS, m.RateLimit, m.Authenticate).Then(router)
+	return r
 }
