@@ -17,3 +17,30 @@ type Movie struct {
 	Genres    []string
 	Version   int32
 }
+
+type Permission struct {
+	ID   int64
+	Code string
+}
+
+type Token struct {
+	Hash   []byte
+	UserID int64
+	Expiry time.Time
+	Scope  string
+}
+
+type User struct {
+	ID           int64
+	CreatedAt    time.Time
+	Name         string
+	Email        interface{}
+	PasswordHash []byte
+	Activated    bool
+	Version      int32
+}
+
+type UsersPermission struct {
+	UserID       int64
+	PermissionID int64
+}
