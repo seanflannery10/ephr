@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/seanflannery10/ephr/internal/data"
+	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/validator"
@@ -29,7 +30,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := data.CreateMovieParams{
+	params := queries.CreateMovieParams{
 		Title:   input.Title,
 		Year:    input.Year,
 		Runtime: input.Runtime,
@@ -38,7 +39,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	v := validator.New()
 
-	if app.validateCreateMovie(v, params); v.HasErrors() {
+	if data.ValidateCreateMovie(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
@@ -109,7 +110,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := data.UpdateMovieParams{ID: id}
+	params := queries.UpdateMovieParams{ID: id}
 
 	if input.Title != nil {
 		params.UpdateTitle = true
@@ -133,7 +134,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	v := validator.New()
 
-	if app.validateUpdateMovie(v, params); v.HasErrors() {
+	if data.ValidateUpdateMovie(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
@@ -141,6 +142,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
+	// TODO Add ErrEditConflict
 	movie, err := app.queries.UpdateMovie(ctx, params)
 	if err != nil {
 		switch {
@@ -198,7 +200,7 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	var input struct {
 		Title  string
 		Genres []string
-		Filters
+		data.Filters
 	}
 
 	v := validator.New()
@@ -214,16 +216,16 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	input.Filters.Sort = helpers.ReadStringParam(qs, "sort", "id")
 	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
 
-	if app.validateFilters(v, input.Filters); v.HasErrors() {
+	if data.ValidateFilters(v, input.Filters); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
-	params := data.GetAllMoviesParams{
+	params := queries.GetAllMoviesParams{
 		Title:  input.Title,
 		Genres: input.Genres,
-		Offset: input.Filters.offset(),
-		Limit:  input.Filters.limit(),
+		Offset: input.Filters.Offset(),
+		Limit:  input.Filters.Limit(),
 	}
 
 	switch input.Filters.Sort {
@@ -262,7 +264,7 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	metadata := app.calculateMetadata(count, input.Filters.Page, input.Filters.PageSize)
+	metadata := data.CalculateMetadata(count, input.Filters.Page, input.Filters.PageSize)
 
 	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
 	if err != nil {

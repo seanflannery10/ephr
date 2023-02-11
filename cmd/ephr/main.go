@@ -1,16 +1,18 @@
 package main
 
 import (
+	"expvar"
 	"log"
 
-	"github.com/seanflannery10/ephr/internal/data"
+	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/database"
+	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/server"
 )
 
 type application struct {
 	config  config
-	queries *data.Queries
+	queries *queries.Queries
 }
 
 func main() {
@@ -21,13 +23,16 @@ func main() {
 		log.Fatal(err, nil)
 	}
 
-	publishVars(dbpool)
+	helpers.PublishCommonMetrics()
+	expvar.Publish("database", expvar.Func(func() any {
+		return dbpool.Stat()
+	}))
 
-	queries := data.New(dbpool)
+	q := queries.New(dbpool)
 
 	app := &application{
 		config:  cfg,
-		queries: queries,
+		queries: q,
 	}
 
 	srv := server.New(app.config.connection.port, app.routes())

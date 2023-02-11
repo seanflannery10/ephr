@@ -6,6 +6,6 @@ FROM permissions
 WHERE users.id = $1;
 
 -- name: AddPermissionsForUser :one
--- INSERT INTO users_permissions
--- SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)
--- RETURNING user_id, permission_id;
+INSERT INTO users_permissions (user_id, permission_id)
+SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)
+RETURNING user_id, permission_id;
