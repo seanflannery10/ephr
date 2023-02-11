@@ -3,11 +3,29 @@
 //   sqlc v1.16.0
 // source: permissions.sql
 
-package data
+package queries
 
 import (
 	"context"
 )
+
+const addPermissionsForUser = `-- name: AddPermissionsForUser :one
+INSERT INTO users_permissions (user_id, permission_id)
+SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)
+RETURNING user_id, permission_id
+`
+
+type AddPermissionsForUserParams struct {
+	UserID int64
+	Code   string
+}
+
+func (q *Queries) AddPermissionsForUser(ctx context.Context, arg AddPermissionsForUserParams) (UsersPermission, error) {
+	row := q.db.QueryRow(ctx, addPermissionsForUser, arg.UserID, arg.Code)
+	var i UsersPermission
+	err := row.Scan(&i.UserID, &i.PermissionID)
+	return i, err
+}
 
 const getAllPermissionsForUser = `-- name: GetAllPermissionsForUser :one
 SELECT permissions.code
