@@ -7,6 +7,29 @@ import (
 	"github.com/seanflannery10/ossa/validator"
 )
 
+func SetSort(sort string, params *queries.GetAllMoviesParams) {
+	switch sort {
+	case "id":
+		params.IDAsc = true
+	case "-id":
+		params.IDDesc = true
+	case "title":
+		params.TitleAsc = true
+	case "-title":
+		params.TitleDesc = true
+	case "year":
+		params.YearAsc = true
+	case "-year":
+		params.YearDesc = true
+	case "runtime":
+		params.RuntimeAsc = true
+	case "-runtime":
+		params.RuntimeDesc = true
+	default:
+		params.IDAsc = true
+	}
+}
+
 func ValidateCreateMovie(v *validator.Validator, createMovieParams queries.CreateMovieParams) {
 	v.Check(createMovieParams.Title != "", "title", "must be provided")
 	v.Check(len(createMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")

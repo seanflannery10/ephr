@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const addPermissionsForUser = `-- name: AddPermissionsForUser :one
+const addPermissionsForUser = `-- name: AddPermissionsForUser :many
 INSERT INTO users_permissions (user_id, permission_id)
 SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)
 RETURNING user_id, permission_id
@@ -20,11 +20,24 @@ type AddPermissionsForUserParams struct {
 	Code   string
 }
 
-func (q *Queries) AddPermissionsForUser(ctx context.Context, arg AddPermissionsForUserParams) (UsersPermission, error) {
-	row := q.db.QueryRow(ctx, addPermissionsForUser, arg.UserID, arg.Code)
-	var i UsersPermission
-	err := row.Scan(&i.UserID, &i.PermissionID)
-	return i, err
+func (q *Queries) AddPermissionsForUser(ctx context.Context, arg AddPermissionsForUserParams) ([]UsersPermission, error) {
+	rows, err := q.db.Query(ctx, addPermissionsForUser, arg.UserID, arg.Code)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UsersPermission
+	for rows.Next() {
+		var i UsersPermission
+		if err := rows.Scan(&i.UserID, &i.PermissionID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getAllPermissionsForUser = `-- name: GetAllPermissionsForUser :one

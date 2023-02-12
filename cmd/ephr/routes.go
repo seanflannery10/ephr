@@ -37,5 +37,9 @@ func (app *application) routes() http.Handler {
 		})
 	})
 
+	r.Route("/v1/users", func(r chi.Router) {
+		r.Post("/", app.registerUserHandler)
+	})
+
 	return r
 }

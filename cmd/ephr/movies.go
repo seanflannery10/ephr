@@ -228,26 +228,7 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		Limit:  input.Filters.Limit(),
 	}
 
-	switch input.Filters.Sort {
-	case "id":
-		params.IDAsc = true
-	case "-id":
-		params.IDDesc = true
-	case "title":
-		params.TitleAsc = true
-	case "-title":
-		params.TitleDesc = true
-	case "year":
-		params.YearAsc = true
-	case "-year":
-		params.YearDesc = true
-	case "runtime":
-		params.RuntimeAsc = true
-	case "-runtime":
-		params.RuntimeDesc = true
-	default:
-		params.IDAsc = true
-	}
+	data.SetSort(input.Filters.Sort, &params)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()

@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/seanflannery10/ossa v0.0.0-20230209033622-949f13272ebe
+	golang.org/x/crypto v0.6.0
 )
 
 require (
@@ -19,7 +20,6 @@ require (
 	github.com/jackc/pgtype v1.13.0 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
 	github.com/lib/pq v1.10.7 // indirect
-	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/text v0.7.0 // indirect
 )
