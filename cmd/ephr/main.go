@@ -2,6 +2,7 @@ package main
 
 import (
 	"expvar"
+	"github.com/seanflannery10/ephr/internal/mailer"
 	"log"
 
 	"github.com/seanflannery10/ephr/internal/queries"
@@ -12,6 +13,7 @@ import (
 
 type application struct {
 	config  config
+	mailer  mailer.Mailer
 	queries *queries.Queries
 }
 
@@ -30,9 +32,15 @@ func main() {
 
 	q := queries.New(dbpool)
 
+	m, err := mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
+	if err != nil {
+		log.Fatal(err, nil)
+	}
+
 	app := &application{
 		config:  cfg,
 		queries: q,
+		mailer:  m,
 	}
 
 	srv := server.New(app.config.connection.port, app.routes())

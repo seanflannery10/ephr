@@ -8,3 +8,6 @@ sql:
         package: "queries"
         out: "internal/queries/"
         sql_package: "pgx/v4"
+        overrides:
+          - db_type: "citext"
+            go_type: "string"

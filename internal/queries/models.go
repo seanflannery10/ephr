@@ -34,7 +34,7 @@ type User struct {
 	ID           int64
 	CreatedAt    time.Time
 	Name         string
-	Email        interface{}
+	Email        string
 	PasswordHash []byte
 	Activated    bool
 	Version      int32
