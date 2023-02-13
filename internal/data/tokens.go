@@ -16,7 +16,7 @@ const (
 	ScopePasswordReset  = "password-reset"
 )
 
-func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (queries.CreateTokenParams, error) {
+func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (queries.CreateTokenParams, string, error) {
 	params := queries.CreateTokenParams{
 		UserID: userID,
 		Expiry: time.Now().Add(ttl),
@@ -27,7 +27,7 @@ func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (querie
 
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		return queries.CreateTokenParams{}, err
+		return queries.CreateTokenParams{}, "", err
 	}
 
 	plaintext := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)
@@ -35,7 +35,7 @@ func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (querie
 	hash := sha256.Sum256([]byte(plaintext))
 	params.Hash = hash[:]
 
-	return params, nil
+	return params, plaintext, nil
 }
 
 func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {

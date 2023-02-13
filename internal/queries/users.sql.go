@@ -18,7 +18,7 @@ RETURNING id, created_at, version
 
 type CreateUserParams struct {
 	Name         string
-	Email        interface{}
+	Email        string
 	PasswordHash []byte
 	Activated    bool
 }
@@ -47,7 +47,7 @@ FROM users
 WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email interface{}) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
@@ -107,7 +107,7 @@ RETURNING version
 
 type UpdateUserParams struct {
 	Name         string
-	Email        interface{}
+	Email        string
 	PasswordHash []byte
 	Activated    bool
 	ID           int64

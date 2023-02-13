@@ -1,7 +1,8 @@
 package main
 
 import (
-	"context"
+	"database/sql"
+	"errors"
 	"net/http"
 	"time"
 
@@ -38,22 +39,20 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	createUserParams := queries.CreateUserParams{
+	paramsCreateUser := queries.CreateUserParams{
 		Name:         input.Name,
 		Email:        input.Email,
 		PasswordHash: hash,
 		Activated:    false,
 	}
 
-	if data.ValidateNewUserParams(v, createUserParams); v.HasErrors() {
+	if data.ValidateNewUserParams(v, paramsCreateUser); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
-	ctxCreateUser, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	user, err := app.queries.CreateUser(ctxCreateUser, createUserParams)
+	// Write user to db
+	user, err := app.queries.CreateUser(r.Context(), paramsCreateUser)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -61,34 +60,31 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 			httperrors.FailedValidation(w, r, v)
 		default:
 			httperrors.ServerError(w, r, err)
-			return
 		}
+
+		return
 	}
 
-	addPermissionsForUserParms := queries.AddPermissionsForUserParams{
+	paramsAddPermissionsForUser := queries.AddPermissionsForUserParams{
 		UserID: user.ID,
 		Code:   "movies:read",
 	}
 
-	ctxAddPermissionsForUser, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	_, err = app.queries.AddPermissionsForUser(ctxAddPermissionsForUser, addPermissionsForUserParms)
+	// Write user permissions to db
+	_, err = app.queries.AddPermissionsForUser(r.Context(), paramsAddPermissionsForUser)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	createTokenParams, err := data.GenCreateTokenParams(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	parmsCreateToken, _, err := data.GenCreateTokenParams(user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	ctxCreateToken, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	token, err := app.queries.CreateToken(ctxCreateToken, createTokenParams)
+	// Write token to db
+	token, err := app.queries.CreateToken(r.Context(), parmsCreateToken)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -108,6 +104,160 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	// })
 
 	err = helpers.WriteJSON(w, http.StatusCreated, map[string]any{"authentication_token": token})
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+	}
+}
+
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		TokenPlaintext string `json:"token"`
+	}
+
+	err := helpers.ReadJSON(w, r, &input)
+	if err != nil {
+		httperrors.BadRequest(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	if data.ValidateTokenPlaintext(v, input.TokenPlaintext); v.HasErrors() {
+		httperrors.FailedValidation(w, r, v)
+		return
+	}
+
+	paramsGetUserFromToken := data.GenGetUserFromTokenParams(input.TokenPlaintext, data.ScopeActivation)
+
+	user, err := app.queries.GetUserFromToken(r.Context(), paramsGetUserFromToken)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			v.AddError("token", "invalid or expired activation token")
+			httperrors.FailedValidation(w, r, v)
+		default:
+			httperrors.ServerError(w, r, err)
+		}
+
+		return
+	}
+
+	user.Activated = true
+
+	paramsUpdateUser := queries.UpdateUserParams{
+		Name:         user.Name,
+		Email:        user.Email,
+		PasswordHash: user.PasswordHash,
+		Activated:    user.Activated,
+		ID:           user.ID,
+		Version:      user.Version,
+	}
+
+	_, err = app.queries.UpdateUser(r.Context(), paramsUpdateUser)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			v.AddError("email", "a user with this email address already exists")
+			httperrors.FailedValidation(w, r, v)
+		default:
+			httperrors.ServerError(w, r, err)
+		}
+
+		return
+	}
+
+	paramsDeleteAllTokensForUser := queries.DeleteAllTokensForUserParams{
+		Scope:  data.ScopeActivation,
+		UserID: user.ID,
+	}
+
+	err = app.queries.DeleteAllTokensForUser(r.Context(), paramsDeleteAllTokensForUser)
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+	}
+
+	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"user": user})
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+	}
+}
+
+func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Password       string `json:"password"`
+		TokenPlaintext string `json:"token"`
+	}
+
+	err := helpers.ReadJSON(w, r, &input)
+	if err != nil {
+		httperrors.BadRequest(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	data.ValidatePasswordPlaintext(v, input.Password)
+	data.ValidateTokenPlaintext(v, input.TokenPlaintext)
+
+	if v.HasErrors() {
+		httperrors.FailedValidation(w, r, v)
+		return
+	}
+
+	paramsGetUserFromToken := data.GenGetUserFromTokenParams(input.TokenPlaintext, data.ScopePasswordReset)
+
+	user, err := app.queries.GetUserFromToken(r.Context(), paramsGetUserFromToken)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			v.AddError("token", "invalid or expired password token")
+			httperrors.FailedValidation(w, r, v)
+		default:
+			httperrors.ServerError(w, r, err)
+		}
+
+		return
+	}
+
+	hash, err := data.GetPasswordHash(input.Password)
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+		return
+	}
+
+	paramsUpdateUser := queries.UpdateUserParams{
+		Name:         user.Name,
+		Email:        user.Email,
+		PasswordHash: hash,
+		Activated:    user.Activated,
+		ID:           user.ID,
+		Version:      user.Version,
+	}
+
+	_, err = app.queries.UpdateUser(r.Context(), paramsUpdateUser)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			v.AddError("email", "a user with this email address already exists")
+			httperrors.FailedValidation(w, r, v)
+		default:
+			httperrors.ServerError(w, r, err)
+		}
+
+		return
+	}
+
+	paramsDeleteAllTokensForUser := queries.DeleteAllTokensForUserParams{
+		Scope:  data.ScopeActivation,
+		UserID: user.ID,
+	}
+
+	err = app.queries.DeleteAllTokensForUser(r.Context(), paramsDeleteAllTokensForUser)
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+	}
+
+	err = helpers.WriteJSON(w, http.StatusAccepted, map[string]any{"message": "your password was successfully reset"})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}

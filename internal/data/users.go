@@ -1,13 +1,27 @@
 package data
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/validator"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func GenGetUserFromTokenParams(tokenPlaintext string, scope string) queries.GetUserFromTokenParams {
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+
+	params := queries.GetUserFromTokenParams{
+		Hash:   tokenHash[:],
+		Scope:  scope,
+		Expiry: time.Now(),
+	}
+
+	return params
+}
 
 func GetPasswordHash(plaintextPassword string) ([]byte, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
