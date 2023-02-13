@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/validator"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func GenGetUserFromTokenParams(tokenPlaintext string, scope string) queries.GetUserFromTokenParams {
+func GenGetUserFromTokenParams(tokenPlaintext string, scope string) GetUserFromTokenParams {
 	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
 
-	params := queries.GetUserFromTokenParams{
+	params := GetUserFromTokenParams{
 		Hash:   tokenHash[:],
 		Scope:  scope,
 		Expiry: time.Now(),
@@ -57,7 +56,7 @@ func ValidatePasswordPlaintext(v *validator.Validator, password string) {
 	v.Check(len(password) <= 72, "password", "must not be more than 72 bytes long")
 }
 
-func ValidateNewUserParams(v *validator.Validator, user queries.CreateUserParams) {
+func ValidateNewUserParams(v *validator.Validator, user CreateUserParams) {
 	v.Check(user.Name != "", "name", "must be provided")
 	v.Check(len(user.Name) <= 500, "name", "must not be more than 500 bytes long")
 

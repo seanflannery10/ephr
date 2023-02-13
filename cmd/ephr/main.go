@@ -2,10 +2,10 @@ package main
 
 import (
 	"expvar"
-	"github.com/seanflannery10/ephr/internal/mailer"
 	"log"
 
-	"github.com/seanflannery10/ephr/internal/queries"
+	"github.com/seanflannery10/ephr/internal/data"
+	"github.com/seanflannery10/ephr/internal/mailer"
 	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/server"
@@ -14,7 +14,8 @@ import (
 type application struct {
 	config  config
 	mailer  mailer.Mailer
-	queries *queries.Queries
+	queries *data.Queries
+	server  *server.Server
 }
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 		return dbpool.Stat()
 	}))
 
-	q := queries.New(dbpool)
+	q := data.New(dbpool)
 
 	m, err := mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
 	if err != nil {
@@ -44,6 +45,8 @@ func main() {
 	}
 
 	srv := server.New(app.config.connection.port, app.routes())
+
+	app.server = srv
 
 	err = srv.Run()
 	if err != nil {

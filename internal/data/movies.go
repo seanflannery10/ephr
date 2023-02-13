@@ -3,11 +3,10 @@ package data
 import (
 	"time"
 
-	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/validator"
 )
 
-func SetSort(sort string, params *queries.GetAllMoviesParams) {
+func SetSort(sort string, params *GetAllMoviesParams) {
 	switch sort {
 	case "id":
 		params.IDAsc = true
@@ -30,7 +29,7 @@ func SetSort(sort string, params *queries.GetAllMoviesParams) {
 	}
 }
 
-func ValidateCreateMovie(v *validator.Validator, createMovieParams queries.CreateMovieParams) {
+func ValidateCreateMovie(v *validator.Validator, createMovieParams CreateMovieParams) {
 	v.Check(createMovieParams.Title != "", "title", "must be provided")
 	v.Check(len(createMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
 
@@ -47,7 +46,7 @@ func ValidateCreateMovie(v *validator.Validator, createMovieParams queries.Creat
 	v.Check(validator.NoDuplicates(createMovieParams.Genres), "genres", "must not contain duplicate values")
 }
 
-func ValidateUpdateMovie(v *validator.Validator, updateMovieParams queries.UpdateMovieParams) {
+func ValidateUpdateMovie(v *validator.Validator, updateMovieParams UpdateMovieParams) {
 	if updateMovieParams.Title != "" {
 		v.Check(len(updateMovieParams.Title) <= 500, "title", "must not be more than 500 bytes long")
 	}

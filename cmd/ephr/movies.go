@@ -10,7 +10,6 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/seanflannery10/ephr/internal/data"
-	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/validator"
@@ -30,7 +29,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := queries.CreateMovieParams{
+	params := data.CreateMovieParams{
 		Title:   input.Title,
 		Year:    input.Year,
 		Runtime: input.Runtime,
@@ -110,7 +109,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	params := queries.UpdateMovieParams{ID: id}
+	params := data.UpdateMovieParams{ID: id}
 
 	if input.Title != nil {
 		params.UpdateTitle = true
@@ -142,7 +141,6 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	// TODO Add ErrEditConflict
 	movie, err := app.queries.UpdateMovie(ctx, params)
 	if err != nil {
 		switch {
@@ -221,7 +219,7 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	params := queries.GetAllMoviesParams{
+	params := data.GetAllMoviesParams{
 		Title:  input.Title,
 		Genres: input.Genres,
 		Offset: input.Filters.Offset(),

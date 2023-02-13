@@ -3,7 +3,7 @@
 //   sqlc v1.16.0
 // source: tokens.sql
 
-package queries
+package data
 
 import (
 	"context"

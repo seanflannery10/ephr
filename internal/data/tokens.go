@@ -6,7 +6,6 @@ import (
 	"encoding/base32"
 	"time"
 
-	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/validator"
 )
 
@@ -16,8 +15,8 @@ const (
 	ScopePasswordReset  = "password-reset"
 )
 
-func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (queries.CreateTokenParams, string, error) {
-	params := queries.CreateTokenParams{
+func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (CreateTokenParams, string, error) {
+	params := CreateTokenParams{
 		UserID: userID,
 		Expiry: time.Now().Add(ttl),
 		Scope:  scope,
@@ -27,7 +26,7 @@ func GenCreateTokenParams(userID int64, ttl time.Duration, scope string) (querie
 
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		return queries.CreateTokenParams{}, "", err
+		return CreateTokenParams{}, "", err
 	}
 
 	plaintext := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)

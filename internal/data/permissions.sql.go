@@ -3,7 +3,7 @@
 //   sqlc v1.16.0
 // source: permissions.sql
 
-package queries
+package data
 
 import (
 	"context"

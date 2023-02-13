@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/seanflannery10/ephr/internal/data"
-	"github.com/seanflannery10/ephr/internal/queries"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/validator"
@@ -39,7 +38,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsCreateUser := queries.CreateUserParams{
+	paramsCreateUser := data.CreateUserParams{
 		Name:         input.Name,
 		Email:        input.Email,
 		PasswordHash: hash,
@@ -65,7 +64,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsAddPermissionsForUser := queries.AddPermissionsForUserParams{
+	paramsAddPermissionsForUser := data.AddPermissionsForUserParams{
 		UserID: user.ID,
 		Code:   "movies:read",
 	}
@@ -144,7 +143,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 
 	user.Activated = true
 
-	paramsUpdateUser := queries.UpdateUserParams{
+	paramsUpdateUser := data.UpdateUserParams{
 		Name:         user.Name,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
@@ -166,7 +165,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsDeleteAllTokensForUser := queries.DeleteAllTokensForUserParams{
+	paramsDeleteAllTokensForUser := data.DeleteAllTokensForUserParams{
 		Scope:  data.ScopeActivation,
 		UserID: user.ID,
 	}
@@ -225,7 +224,7 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	paramsUpdateUser := queries.UpdateUserParams{
+	paramsUpdateUser := data.UpdateUserParams{
 		Name:         user.Name,
 		Email:        user.Email,
 		PasswordHash: hash,
@@ -247,7 +246,7 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	paramsDeleteAllTokensForUser := queries.DeleteAllTokensForUserParams{
+	paramsDeleteAllTokensForUser := data.DeleteAllTokensForUserParams{
 		Scope:  data.ScopeActivation,
 		UserID: user.ID,
 	}

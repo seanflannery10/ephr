@@ -3,12 +3,14 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/validator"
-	"net/http"
-	"time"
+	"golang.org/x/exp/slog"
 )
 
 func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +43,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		default:
 			httperrors.ServerError(w, r, err)
 		}
+
 		return
 	}
 
@@ -62,6 +65,10 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 	}
 
 	token, err := app.queries.CreateToken(r.Context(), params)
+	if err != nil {
+		httperrors.ServerError(w, r, err)
+		return
+	}
 
 	err = helpers.WriteJSON(w, http.StatusCreated, map[string]any{"authentication_token": token})
 	if err != nil {
@@ -95,12 +102,14 @@ func (app *application) createPasswordResetTokenHandler(w http.ResponseWriter, r
 		default:
 			httperrors.ServerError(w, r, err)
 		}
+
 		return
 	}
 
 	if !user.Activated {
 		v.AddError("email", "user account must be activated")
 		httperrors.FailedValidation(w, r, v)
+
 		return
 	}
 
@@ -116,17 +125,16 @@ func (app *application) createPasswordResetTokenHandler(w http.ResponseWriter, r
 		return
 	}
 
-	// TODO Fix
-	//app.background(func() {
-	//	data := map[string]any{
-	//		"passwordResetToken": plaintext,
-	//	}
-	//
-	//	err = app.mailer.Send(user.Email, "token_password_reset.tmpl", data)
-	//	if err != nil {
-	//		app.logger.PrintError(err, nil)
-	//	}
-	//})
+	app.server.Background(func() {
+		input := map[string]any{
+			"passwordResetToken": plaintext,
+		}
+
+		err = app.mailer.Send(user.Email, "token_password_reset.tmpl", input)
+		if err != nil {
+			slog.Error("email error", err)
+		}
+	})
 
 	msg := "an email will be sent to you containing password reset instructions"
 
@@ -162,12 +170,14 @@ func (app *application) createActivationTokenHandler(w http.ResponseWriter, r *h
 		default:
 			httperrors.ServerError(w, r, err)
 		}
+
 		return
 	}
 
 	if user.Activated {
 		v.AddError("email", "user has already been activated")
 		httperrors.FailedValidation(w, r, v)
+
 		return
 	}
 
@@ -183,17 +193,16 @@ func (app *application) createActivationTokenHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	// TODO Fix
-	//app.background(func() {
-	//	data := map[string]any{
-	//		"activationToken": plaintext,
-	//	}
-	//
-	//	err = app.mailer.Send(user.Email, "token_activation.tmpl", data)
-	//	if err != nil {
-	//		app.logger.PrintError(err, nil)
-	//	}
-	//})
+	app.server.Background(func() {
+		input := map[string]any{
+			"activationToken": plaintext,
+		}
+
+		err = app.mailer.Send(user.Email, "token_activation.tmpl", input)
+		if err != nil {
+			slog.Error("email error", err)
+		}
+	})
 
 	msg := "an email will be sent to you containing activation instructions"
 
