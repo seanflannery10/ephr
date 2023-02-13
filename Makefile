@@ -65,7 +65,7 @@ down:
 ## migrations: apply db migrations
 .PHONY: migrations
 migrations:
-	dbmate --url ${DB_URL} up
+	dbmate -d "./sql/migrations" --url ${DB_URL} up
 
 ## psql: connect to the database using psql
 .PHONY: psql
