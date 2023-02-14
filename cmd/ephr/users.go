@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"golang.org/x/exp/slog"
 	"net/http"
 	"time"
 
@@ -76,31 +77,22 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	parmsCreateToken, _, err := data.GenCreateTokenParams(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	token, err := app.queries.NewToken(user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	// Write token to db
-	token, err := app.queries.CreateToken(r.Context(), parmsCreateToken)
-	if err != nil {
-		httperrors.ServerError(w, r, err)
-		return
-	}
+	app.server.Background(func() {
+		input := map[string]any{
+			"activationToken": token.Plaintext,
+		}
 
-	// TODO Fix
-	// app.background(func() {
-	//	data := map[string]any{
-	//		"activationToken": token.Plaintext,
-	//		"userID":          user.ID,
-	//	}
-	//
-	//	err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
-	//	if err != nil {
-	//		app.logger.PrintError(err, nil)
-	//	}
-	// })
+		err = app.mailer.Send(user.Email, "token_activation.tmpl", input)
+		if err != nil {
+			slog.Error("email error", err)
+		}
+	})
 
 	err = helpers.WriteJSON(w, http.StatusCreated, map[string]any{"authentication_token": token})
 	if err != nil {

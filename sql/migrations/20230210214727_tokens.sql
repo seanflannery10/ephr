@@ -1,5 +1,6 @@
 -- migrate:up
 CREATE TABLE IF NOT EXISTS tokens (
+    plaintext char(0) NOT NULL,
     hash bytea PRIMARY KEY,
     user_id bigint NOT NULL REFERENCES users ON DELETE CASCADE,
     expiry timestamp(0) with time zone NOT NULL,

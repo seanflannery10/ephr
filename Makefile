@@ -18,8 +18,8 @@ help:
 ## tidy: format code and tidy modfile
 .PHONY: tidy
 tidy:
-	sqlc compile
-	sqlc generate
+	sqlc compile --experimental
+	sqlc generate --experimental
 	go mod tidy -v
 
 ## audit: run quality control checks

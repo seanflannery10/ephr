@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
@@ -33,7 +34,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Title:   input.Title,
 		Year:    input.Year,
 		Runtime: input.Runtime,
-		Genres:  input.Genres,
+		Genres:  pgtype.Array[string]{Elements: input.Genres},
 	}
 
 	v := validator.New()
@@ -128,7 +129,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	if input.Genres != nil {
 		params.UpdateGenres = true
-		params.Genres = input.Genres
+		params.Genres = pgtype.Array[string]{Elements: input.Genres}
 	}
 
 	v := validator.New()
@@ -197,7 +198,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Title  string
-		Genres []string
+		Genres pgtype.Array[string]
 		data.Filters
 	}
 
@@ -206,7 +207,7 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	qs := r.URL.Query()
 
 	input.Title = helpers.ReadStringParam(qs, "title", "")
-	input.Genres = helpers.ReadCSVParam(qs, "genres", []string{})
+	input.Genres = pgtype.Array[string]{Elements: helpers.ReadCSVParam(qs, "genres", []string{})}
 
 	input.Filters.Page = helpers.ReadIntParam(qs, "page", 1, v)
 	input.Filters.PageSize = helpers.ReadIntParam(qs, "page_size", 20, v)

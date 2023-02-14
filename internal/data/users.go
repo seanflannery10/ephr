@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/seanflannery10/ossa/validator"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,7 +17,7 @@ func GenGetUserFromTokenParams(tokenPlaintext string, scope string) GetUserFromT
 	params := GetUserFromTokenParams{
 		Hash:   tokenHash[:],
 		Scope:  scope,
-		Expiry: time.Now(),
+		Expiry: pgtype.Timestamptz{Time: time.Now()},
 	}
 
 	return params

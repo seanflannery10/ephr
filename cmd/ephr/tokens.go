@@ -58,13 +58,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		return
 	}
 
-	params, _, err := data.GenCreateTokenParams(user.ID, 3*24*time.Hour, data.ScopeActivation)
-	if err != nil {
-		httperrors.ServerError(w, r, err)
-		return
-	}
-
-	token, err := app.queries.CreateToken(r.Context(), params)
+	token, err := app.queries.NewToken(user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -113,13 +107,7 @@ func (app *application) createPasswordResetTokenHandler(w http.ResponseWriter, r
 		return
 	}
 
-	params, plaintext, err := data.GenCreateTokenParams(user.ID, 45*time.Minute, data.ScopePasswordReset)
-	if err != nil {
-		httperrors.ServerError(w, r, err)
-		return
-	}
-
-	_, err = app.queries.CreateToken(r.Context(), params)
+	token, err := app.queries.NewToken(user.ID, 45*time.Minute, data.ScopePasswordReset)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -127,7 +115,7 @@ func (app *application) createPasswordResetTokenHandler(w http.ResponseWriter, r
 
 	app.server.Background(func() {
 		input := map[string]any{
-			"passwordResetToken": plaintext,
+			"passwordResetToken": token.Plaintext,
 		}
 
 		err = app.mailer.Send(user.Email, "token_password_reset.tmpl", input)
@@ -181,13 +169,7 @@ func (app *application) createActivationTokenHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	params, plaintext, err := data.GenCreateTokenParams(user.ID, 3*24*time.Hour, data.ScopeActivation)
-	if err != nil {
-		httperrors.ServerError(w, r, err)
-		return
-	}
-
-	_, err = app.queries.CreateToken(r.Context(), params)
+	token, err := app.queries.NewToken(user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -195,7 +177,7 @@ func (app *application) createActivationTokenHandler(w http.ResponseWriter, r *h
 
 	app.server.Background(func() {
 		input := map[string]any{
-			"activationToken": plaintext,
+			"activationToken": token.Plaintext,
 		}
 
 		err = app.mailer.Send(user.Email, "token_activation.tmpl", input)

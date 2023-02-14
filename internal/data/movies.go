@@ -40,10 +40,10 @@ func ValidateCreateMovie(v *validator.Validator, createMovieParams CreateMoviePa
 	v.Check(createMovieParams.Runtime != 0, "runtime", "must be provided")
 	v.Check(createMovieParams.Runtime > 0, "runtime", "must be a positive integer")
 
-	v.Check(createMovieParams.Genres != nil, "genres", "must be provided")
-	v.Check(len(createMovieParams.Genres) >= 1, "genres", "must contain at least 1 genre")
-	v.Check(len(createMovieParams.Genres) <= 5, "genres", "must not contain more than 5 genres")
-	v.Check(validator.NoDuplicates(createMovieParams.Genres), "genres", "must not contain duplicate values")
+	v.Check(createMovieParams.Genres.Elements != nil, "genres", "must be provided")
+	v.Check(len(createMovieParams.Genres.Elements) >= 1, "genres", "must contain at least 1 genre")
+	v.Check(len(createMovieParams.Genres.Elements) <= 5, "genres", "must not contain more than 5 genres")
+	v.Check(validator.NoDuplicates(createMovieParams.Genres.Elements), "genres", "must not contain duplicate values")
 }
 
 func ValidateUpdateMovie(v *validator.Validator, updateMovieParams UpdateMovieParams) {
@@ -60,9 +60,9 @@ func ValidateUpdateMovie(v *validator.Validator, updateMovieParams UpdateMoviePa
 		v.Check(updateMovieParams.Runtime > 0, "runtime", "must be a positive integer")
 	}
 
-	if updateMovieParams.Genres != nil {
-		v.Check(len(updateMovieParams.Genres) >= 1, "genres", "must contain at least 1 genre")
-		v.Check(len(updateMovieParams.Genres) <= 5, "genres", "must not contain more than 5 genres")
-		v.Check(validator.NoDuplicates(updateMovieParams.Genres), "genres", "must not contain duplicate values")
+	if updateMovieParams.Genres.Elements != nil {
+		v.Check(len(updateMovieParams.Genres.Elements) >= 1, "genres", "must contain at least 1 genre")
+		v.Check(len(updateMovieParams.Genres.Elements) <= 5, "genres", "must not contain more than 5 genres")
+		v.Check(validator.NoDuplicates(updateMovieParams.Genres.Elements), "genres", "must not contain duplicate values")
 	}
 }

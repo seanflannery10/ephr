@@ -6,7 +6,6 @@ import (
 
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ephr/internal/mailer"
-	"github.com/seanflannery10/ossa/database"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/server"
 )
@@ -21,10 +20,10 @@ type application struct {
 func main() {
 	cfg := parseConfig()
 
-	dbpool, err := database.New(cfg.db)
-	if err != nil {
-		log.Fatal(err, nil)
-	}
+	//dbpool, err :=
+	//if err != nil {
+	//	log.Fatal(err, nil)
+	//}
 
 	helpers.PublishCommonMetrics()
 	expvar.Publish("database", expvar.Func(func() any {
