@@ -58,7 +58,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		return
 	}
 
-	token, err := app.queries.NewToken(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	token, err := app.queries.NewToken(r.Context(), user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -107,7 +107,7 @@ func (app *application) createPasswordResetTokenHandler(w http.ResponseWriter, r
 		return
 	}
 
-	token, err := app.queries.NewToken(user.ID, 45*time.Minute, data.ScopePasswordReset)
+	token, err := app.queries.NewToken(r.Context(), user.ID, 45*time.Minute, data.ScopePasswordReset)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -169,7 +169,7 @@ func (app *application) createActivationTokenHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	token, err := app.queries.NewToken(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	token, err := app.queries.NewToken(r.Context(), user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return

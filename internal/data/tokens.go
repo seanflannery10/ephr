@@ -17,14 +17,14 @@ const (
 	ScopePasswordReset  = "password-reset"
 )
 
-func (q *Queries) NewToken(userID int64, ttl time.Duration, scope string) (Token, error) {
+func (q *Queries) NewToken(ctx context.Context, userID int64, ttl time.Duration, scope string) (Token, error) {
 	params := CreateTokenParams{
 		UserID: userID,
 		Expiry: pgtype.Timestamptz{Time: time.Now().Add(ttl)},
 		Scope:  scope,
 	}
 
-	token, err := q.CreateToken(context.Background(), params)
+	token, err := q.CreateToken(ctx, params)
 	if err != nil {
 		return Token{}, err
 	}

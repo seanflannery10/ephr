@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/seanflannery10/ephr/internal/data"
+	"github.com/seanflannery10/ephr/internal/database"
 	"github.com/seanflannery10/ephr/internal/mailer"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/server"
@@ -20,10 +21,15 @@ type application struct {
 func main() {
 	cfg := parseConfig()
 
-	//dbpool, err :=
-	//if err != nil {
-	//	log.Fatal(err, nil)
-	//}
+	m, err := mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
+	if err != nil {
+		log.Fatal(err, nil)
+	}
+
+	dbpool, err := database.New(cfg.db)
+	if err != nil {
+		log.Fatal(err, nil)
+	}
 
 	helpers.PublishCommonMetrics()
 	expvar.Publish("database", expvar.Func(func() any {
@@ -31,11 +37,6 @@ func main() {
 	}))
 
 	q := data.New(dbpool)
-
-	m, err := mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
-	if err != nil {
-		log.Fatal(err, nil)
-	}
 
 	app := &application{
 		config:  cfg,

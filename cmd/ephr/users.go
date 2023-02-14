@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"golang.org/x/exp/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
 	"github.com/seanflannery10/ossa/validator"
+	"golang.org/x/exp/slog"
 )
 
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +77,8 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	token, err := app.queries.NewToken(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	token, err := app.queries.NewToken(r.Context(),
+		user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return

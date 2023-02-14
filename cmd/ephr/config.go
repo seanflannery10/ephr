@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/seanflannery10/ossa/helpers"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/seanflannery10/ephr/internal/database"
+	"github.com/seanflannery10/ossa/helpers"
 )
 
 type connectionConfig struct {
@@ -22,19 +24,10 @@ type smtpConfig struct {
 	sender   string
 }
 
-type databaseConfig struct {
-	DSN                   string
-	MinConns              int32
-	MaxConns              int32
-	MaxConnLifetime       string
-	MaxConnLifetimeJitter string
-	MaxConnIdleTime       string
-}
-
 type config struct {
 	connection connectionConfig
 	smtp       smtpConfig
-	db         databaseConfig
+	db         database.Config
 }
 
 func parseConfig() config {
@@ -50,7 +43,7 @@ func parseConfig() config {
 			password: getEnvStrValue("SMTP_PASSWORD", ""),
 			sender:   getEnvStrValue("SMTP_SENDER", "Greenlight <no-reply@testdomain.com>"),
 		},
-		db: databaseConfig{
+		db: database.Config{
 			DSN:                   getEnvStrValue("DB_URL", ""),
 			MaxConns:              getEnvInt32Value("DB_MAX_CONNS", 25),
 			MinConns:              getEnvInt32Value("DB_MIN_CONNS", 25),

@@ -39,6 +39,14 @@ func (app *application) routes() http.Handler {
 
 	r.Route("/v1/users", func(r chi.Router) {
 		r.Post("/", app.registerUserHandler)
+		r.Put("/activated", app.activateUserHandler)
+		r.Put("/password", app.updateUserPasswordHandler)
+	})
+
+	r.Route("/v1/tokens", func(r chi.Router) {
+		r.Post("/authentication", app.createAuthenticationTokenHandler)
+		r.Put("/activation", app.createActivationTokenHandler)
+		r.Put("/password-reset", app.createPasswordResetTokenHandler)
 	})
 
 	return r
