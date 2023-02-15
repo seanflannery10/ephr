@@ -26,7 +26,7 @@ func main() {
 		log.Fatal(err, nil)
 	}
 
-	dbpool, err := database.New(cfg.db)
+	dbpool, err := database.New(cfg.db.dsn)
 	if err != nil {
 		log.Fatal(err, nil)
 	}

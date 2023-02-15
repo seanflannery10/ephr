@@ -7,51 +7,39 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/seanflannery10/ephr/internal/database"
 	"github.com/seanflannery10/ossa/helpers"
 )
 
-type connectionConfig struct {
-	port int
-	env  string
-}
-
-type smtpConfig struct {
-	host     string
-	port     int
-	username string
-	password string
-	sender   string
-}
-
 type config struct {
-	connection connectionConfig
-	smtp       smtpConfig
-	db         database.Config
+	connection struct {
+		port int
+		env  string
+	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
+	db struct {
+		dsn string
+	}
 }
 
 func parseConfig() config {
-	config := config{
-		connection: connectionConfig{
-			port: int(getEnvInt32Value("PORT", 4000)),
-			env:  getEnvStrValue("ENV", "dev"),
-		},
-		smtp: smtpConfig{
-			host:     getEnvStrValue("SMTP_HOST", ""),
-			port:     int(getEnvInt32Value("SMTP_PORT", 25)),
-			username: getEnvStrValue("SMTP_USERNAME", ""),
-			password: getEnvStrValue("SMTP_PASSWORD", ""),
-			sender:   getEnvStrValue("SMTP_SENDER", "Greenlight <no-reply@testdomain.com>"),
-		},
-		db: database.Config{
-			DSN:                   getEnvStrValue("DB_URL", ""),
-			MaxConns:              getEnvInt32Value("DB_MAX_CONNS", 25),
-			MinConns:              getEnvInt32Value("DB_MIN_CONNS", 25),
-			MaxConnLifetime:       getEnvStrValue("DB_MAX_CONN_LIFETIME", "15m"),
-			MaxConnLifetimeJitter: getEnvStrValue("DB_MAX_CONN_LIFETIME_JITTER", "15m"),
-			MaxConnIdleTime:       getEnvStrValue("DB_MAX_CONN_IDLE_TIME", "60m"),
-		},
-	}
+	config := config{}
+
+	config.connection.port = int(getEnvInt32Value("PORT", 4000))
+	config.connection.env = getEnvStrValue("ENV", "dev")
+
+	config.smtp.host = getEnvStrValue("SMTP_HOST", "smtp.mailtrap.io")
+	config.smtp.port = int(getEnvInt32Value("SMTP_PORT", 25))
+	config.smtp.username = getEnvStrValue("SMTP_USERNAME", "")
+	config.smtp.password = getEnvStrValue("SMTP_PASSWORD", "")
+	config.smtp.sender = getEnvStrValue("SMTP_SENDER", "Greenlight <no-reply@testdomain.com>")
+
+	config.db.dsn = getEnvStrValue("DB_DSN", "")
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
 	flag.Parse()
