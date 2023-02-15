@@ -12,7 +12,7 @@ import (
 var templateFS embed.FS
 
 type Mailer struct {
-	dialer *mail.Client
+	client *mail.Client
 	sender string
 }
 
@@ -29,7 +29,7 @@ func New(host string, port int, username, password, sender string) (Mailer, erro
 	}
 
 	mailer := Mailer{
-		dialer: client,
+		client: client,
 		sender: sender,
 	}
 
@@ -78,7 +78,7 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 	msg.SetBodyString(mail.TypeTextPlain, plainBody.String())
 	msg.SetBodyString(mail.TypeTextHTML, htmlBody.String())
 
-	err = m.dialer.DialAndSend(msg)
+	err = m.client.DialAndSend(msg)
 	if err != nil {
 		return err
 	}

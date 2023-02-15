@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -44,10 +42,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	movie, err := app.queries.CreateMovie(ctx, params)
+	movie, err := app.queries.CreateMovie(r.Context(), params)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -69,10 +64,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	movie, err := app.queries.GetMovie(ctx, id)
+	movie, err := app.queries.GetMovie(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -139,10 +131,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	movie, err := app.queries.UpdateMovie(ctx, params)
+	movie, err := app.queries.UpdateMovie(r.Context(), params)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -174,10 +163,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	err = app.queries.DeleteMovie(ctx, id)
+	err = app.queries.DeleteMovie(r.Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -220,31 +206,11 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	params := data.GetAllMoviesParams{
-		Title:  input.Title,
-		Genres: input.Genres,
-		Offset: input.Filters.Offset(),
-		Limit:  input.Filters.Limit(),
-	}
-
-	data.SetSort(input.Filters.Sort, &params)
-
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	movies, err := app.queries.GetAllMovies(ctx, params)
+	movies, metadata, err := app.queries.GetAllMoviesWithMetadata(r.Context(), input.Title, input.Genres, input.Filters)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
-
-	count, err := app.queries.GetMovieCount(ctx)
-	if err != nil {
-		httperrors.ServerError(w, r, err)
-		return
-	}
-
-	metadata := data.CalculateMetadata(count, input.Filters.Page, input.Filters.PageSize)
 
 	err = helpers.WriteJSON(w, http.StatusOK, map[string]any{"movies": movies, "metadata": metadata})
 	if err != nil {

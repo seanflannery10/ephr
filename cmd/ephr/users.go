@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/httperrors"
@@ -39,20 +41,19 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsCreateUser := data.CreateUserParams{
+	params := data.CreateUserParams{
 		Name:         input.Name,
 		Email:        input.Email,
 		PasswordHash: hash,
 		Activated:    false,
 	}
 
-	if data.ValidateNewUserParams(v, paramsCreateUser); v.HasErrors() {
+	if data.ValidateNewUserParams(v, params); v.HasErrors() {
 		httperrors.FailedValidation(w, r, v)
 		return
 	}
 
-	// Write user to db
-	user, err := app.queries.CreateUser(r.Context(), paramsCreateUser)
+	user, err := app.queries.CreateUser(r.Context(), params)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -65,20 +66,16 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsAddPermissionsForUser := data.AddPermissionsForUserParams{
+	_, err = app.queries.AddPermissionsForUser(r.Context(), data.AddPermissionsForUserParams{
 		UserID: user.ID,
 		Code:   "movies:read",
-	}
-
-	// Write user permissions to db
-	_, err = app.queries.AddPermissionsForUser(r.Context(), paramsAddPermissionsForUser)
+	})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
 	}
 
-	token, err := app.queries.NewToken(r.Context(),
-		user.ID, 3*24*time.Hour, data.ScopeActivation)
+	token, err := app.queries.NewToken(r.Context(), user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 		return
@@ -119,9 +116,13 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsGetUserFromToken := data.GenGetUserFromTokenParams(input.TokenPlaintext, data.ScopeActivation)
+	tokenHash := sha256.Sum256([]byte(input.TokenPlaintext))
 
-	user, err := app.queries.GetUserFromToken(r.Context(), paramsGetUserFromToken)
+	user, err := app.queries.GetUserFromToken(r.Context(), data.GetUserFromTokenParams{
+		Hash:   tokenHash[:],
+		Scope:  data.ScopeActivation,
+		Expiry: pgtype.Timestamptz{Time: time.Now()},
+	})
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -136,16 +137,14 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 
 	user.Activated = true
 
-	paramsUpdateUser := data.UpdateUserParams{
+	_, err = app.queries.UpdateUser(r.Context(), data.UpdateUserParams{
 		Name:         user.Name,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
 		Activated:    user.Activated,
 		ID:           user.ID,
 		Version:      user.Version,
-	}
-
-	_, err = app.queries.UpdateUser(r.Context(), paramsUpdateUser)
+	})
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -158,12 +157,10 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	paramsDeleteAllTokensForUser := data.DeleteAllTokensForUserParams{
+	err = app.queries.DeleteAllTokensForUser(r.Context(), data.DeleteAllTokensForUserParams{
 		Scope:  data.ScopeActivation,
 		UserID: user.ID,
-	}
-
-	err = app.queries.DeleteAllTokensForUser(r.Context(), paramsDeleteAllTokensForUser)
+	})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}
@@ -196,9 +193,13 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	paramsGetUserFromToken := data.GenGetUserFromTokenParams(input.TokenPlaintext, data.ScopePasswordReset)
+	tokenHash := sha256.Sum256([]byte(input.TokenPlaintext))
 
-	user, err := app.queries.GetUserFromToken(r.Context(), paramsGetUserFromToken)
+	user, err := app.queries.GetUserFromToken(r.Context(), data.GetUserFromTokenParams{
+		Hash:   tokenHash[:],
+		Scope:  data.ScopePasswordReset,
+		Expiry: pgtype.Timestamptz{Time: time.Now()},
+	})
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -217,16 +218,14 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	paramsUpdateUser := data.UpdateUserParams{
+	_, err = app.queries.UpdateUser(r.Context(), data.UpdateUserParams{
 		Name:         user.Name,
 		Email:        user.Email,
 		PasswordHash: hash,
 		Activated:    user.Activated,
 		ID:           user.ID,
 		Version:      user.Version,
-	}
-
-	_, err = app.queries.UpdateUser(r.Context(), paramsUpdateUser)
+	})
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -239,12 +238,10 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	paramsDeleteAllTokensForUser := data.DeleteAllTokensForUserParams{
+	err = app.queries.DeleteAllTokensForUser(r.Context(), data.DeleteAllTokensForUserParams{
 		Scope:  data.ScopeActivation,
 		UserID: user.ID,
-	}
-
-	err = app.queries.DeleteAllTokensForUser(r.Context(), paramsDeleteAllTokensForUser)
+	})
 	if err != nil {
 		httperrors.ServerError(w, r, err)
 	}

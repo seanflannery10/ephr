@@ -1,13 +1,27 @@
 package data
 
 import (
+	"context"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/seanflannery10/ossa/validator"
 )
 
-func SetSort(sort string, params *GetAllMoviesParams) {
-	switch sort {
+func (q *Queries) GetAllMoviesWithMetadata(
+	ctx context.Context,
+	title string,
+	generes pgtype.Array[string],
+	filters Filters,
+) ([]Movie, Metadata, error) {
+	params := GetAllMoviesParams{
+		Title:  title,
+		Genres: generes,
+		Offset: filters.Offset(),
+		Limit:  filters.Limit(),
+	}
+
+	switch filters.Sort {
 	case "id":
 		params.IDAsc = true
 	case "-id":
@@ -27,6 +41,20 @@ func SetSort(sort string, params *GetAllMoviesParams) {
 	default:
 		params.IDAsc = true
 	}
+
+	movies, err := q.GetAllMovies(ctx, params)
+	if err != nil {
+		return []Movie{}, Metadata{}, err
+	}
+
+	count, err := q.GetMovieCount(ctx)
+	if err != nil {
+		return []Movie{}, Metadata{}, err
+	}
+
+	metadata := CalculateMetadata(count, filters.Page, filters.PageSize)
+
+	return movies, metadata, nil
 }
 
 func ValidateCreateMovie(v *validator.Validator, createMovieParams CreateMovieParams) {
