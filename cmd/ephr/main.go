@@ -1,48 +1,49 @@
 package main
 
 import (
+	"context"
 	"expvar"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/kelseyhightower/envconfig"
 	"github.com/seanflannery10/ephr/internal/data"
 	"github.com/seanflannery10/ephr/internal/database"
 	"github.com/seanflannery10/ephr/internal/mailer"
 	"github.com/seanflannery10/ossa/helpers"
 	"github.com/seanflannery10/ossa/server"
+	"github.com/sethvargo/go-envconfig"
 )
 
-type config struct {
-	connection struct {
-		port int
-		env  string
+type Config struct {
+	Connection struct {
+		Port int    `env:"PORT,default=4000"`
+		Env  string `env:"ENV,default=dev"`
 	}
-	smtp struct {
-		host     string
-		port     int
-		username string
-		password string
-		sender   string
+	SMTP struct {
+		Host     string `env:"SMTP_HOST,default=smtp.mailtrap.io"`
+		Port     int    `env:"SMTP_PORT,default=25"`
+		Username string `env:"SMTP_USERNAME"`
+		Password string `env:"SMTP_PASSWORD"`
+		Sender   string `env:"SMTP_SENDER,default=Greenlight <no-reply@testdomain.com>"`
 	}
-	db struct {
-		dsn string
+	DB struct {
+		DSN string `env:"DB_DSN"`
 	}
 }
 
 type application struct {
-	config  config
+	config  Config
 	mailer  mailer.Mailer
 	queries *data.Queries
 	server  *server.Server
 }
 
 func main() {
-	cfg := config{}
+	cfg := Config{}
 
-	err := envconfig.Process("ephr", cfg)
+	err := envconfig.Process(context.Background(), &cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,12 +56,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	m, err := mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
+	m, err := mailer.New(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.Sender)
 	if err != nil {
 		log.Fatal(err, nil)
 	}
 
-	dbpool, err := database.New(cfg.db.dsn)
+	dbpool, err := database.New(cfg.DB.DSN)
 	if err != nil {
 		log.Fatal(err, nil)
 	}
@@ -78,7 +79,7 @@ func main() {
 		mailer:  m,
 	}
 
-	app.server = server.New(app.config.connection.port, app.routes())
+	app.server = server.New(app.config.Connection.Port, app.routes())
 
 	err = app.server.Run()
 	if err != nil {

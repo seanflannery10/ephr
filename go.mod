@@ -6,8 +6,8 @@ require (
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/jackc/pgx/v5 v5.3.0
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/seanflannery10/ossa v0.0.0-20230209033622-949f13272ebe
+	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/wneessen/go-mail v0.3.8
 	golang.org/x/crypto v0.6.0
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
